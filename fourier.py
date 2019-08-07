@@ -49,12 +49,12 @@ class FourierFeatures():
         # (because it cancels out in the percentage formula)
 
         band_energies = {}
-        total_energy = np.sum(self.power_spectrum)
+        total_energy = self.ts * np.sum(self.power_spectrum)
         band_energies['total_energy'] = total_energy
         for band in EEG_BANDS:
             lower_freq, upper_freq = EEG_BANDS[band]
             band_power_spectrum = self.power_spectrum[(self.f_axis >= lower_freq) & (self.f_axis < upper_freq)]
-            relative_band_energy = np.sum(band_power_spectrum) / total_energy
+            relative_band_energy = self.ts * np.sum(band_power_spectrum) / total_energy
             band_energies[band] = relative_band_energy
         return band_energies
 
@@ -67,13 +67,13 @@ class FourierFeatures():
                     setattr(self, feature_name + '_' + key, val)
             except AttributeError:
                 print(f"Feature **{feature_name}** calculation method not implemented!")
+
+# test eeg segment
 fs = 400
 ts = 1/fs
-
 with open('eeg_segment.p', 'rb') as pkl_file:
     signal = pickle.load(pkl_file)
 
 t = np.arange(0, len(signal)) * ts
 ff = FourierFeatures(signal, fs, features_list=['eeg_band_energies'])
 ff.compute_features()
-print(ff.__dict__.keys())
