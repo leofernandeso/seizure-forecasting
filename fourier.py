@@ -9,7 +9,7 @@ EEG_BANDS = {
             'theta': (4, 8),
             'alpha': (8, 12),
             'beta': (12, 30),
-            'lower_gamma': (30, 85),
+            'lower_gamma': (30, 80),
             'upper_gamma': (80, 150)
             }
 
@@ -59,14 +59,15 @@ class FourierFeatures():
         return band_energies
 
     def compute_features(self):
+        features_dict = {}
         for feature_name in self.features_list:
             try:
                 method_to_call = getattr(self, feature_name)
                 output_params = method_to_call()
-                for key, val in zip(output_params.keys(), output_params.values()):
-                    setattr(self, feature_name + '_' + key, val)
+                features_dict.update(output_params)
             except AttributeError:
                 print(f"Feature **{feature_name}** calculation method not implemented!")
+        return features_dict
 
 # test eeg segment
 fs = 400
@@ -76,4 +77,4 @@ with open('eeg_segment.p', 'rb') as pkl_file:
 
 t = np.arange(0, len(signal)) * ts
 ff = FourierFeatures(signal, fs, features_list=['eeg_band_energies'])
-ff.compute_features()
+computed_features = ff.compute_features()
