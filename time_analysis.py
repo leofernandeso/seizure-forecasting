@@ -49,7 +49,7 @@ class TimeFeatures():
             The time is returned in terms of the sample number """
         autocorrelation_function = pacf(self.signal)
         zero_crossings_idxs = np.where(autocorrelation_function[:-1] * autocorrelation_function[1:] < 0)[0]
-        decorrelation_time = zero_crossings_idxs[0] + 1 # time right after first zero crossing
+        decorrelation_time = (zero_crossings_idxs[0] + 1) * self.ts # sample right after first zero crossing *  ts
         return {'decorrelation_time': decorrelation_time}
 
     def compute_features(self):
