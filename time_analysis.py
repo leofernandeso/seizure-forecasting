@@ -2,6 +2,8 @@ import numpy as np
 import math
 import pickle
 from matplotlib import pyplot as plt
+from scipy.stats import skew, kurtosis
+from statsmodels.tsa.stattools import pacf
 
 
 class TimeFeatures():
@@ -18,13 +20,37 @@ class TimeFeatures():
 
     def zero_crossings(self):
         zero_crossings_count = (self.signal[:-1] * self.signal[1:] < 0).sum()
-        return dict(zero_crossings=zero_crossings_count)
+        return {'zero_crossings': zero_crossings_count}
 
     def rms(self):
-        return dict(rms=np.sqrt(np.mean(self.signal**2)))
+        return {'rms': np.sqrt(np.mean(self.signal**2))}
     
     def mean(self):
-        return dict(mean=np.mean(self.signal))
+        return {'mean': np.mean(self.signal)}
+
+    def abs_mean(self):
+        return {'abs_mean': np.abs(np.mean(self.signal))}
+
+    def std(self):
+        return {'std': np.std(self.signal)}
+
+    def skewness(self):
+        return {'skewness': skew(self.signal)}
+
+    def peak_to_peak(self):
+        peak_to_peak = np.amax(self.signal) - np.amin(self.signal)
+        return {'peak_to_peak': peak_to_peak}
+
+    def kurtosis(self):
+        return {'kurtosis': kurtosis(self.signal)}
+
+    def decorrelation_time(self):
+        """ Returns decorrelation time (first zero-crossing of PACF).
+            The time is returned in terms of the sample number """
+        autocorrelation_function = pacf(self.signal)
+        zero_crossings_idxs = np.where(autocorrelation_function[:-1] * autocorrelation_function[1:] < 0)[0]
+        decorrelation_time = zero_crossings_idxs[0] + 1 # time right after first zero crossing
+        return {'decorrelation_time': decorrelation_time}
 
     def compute_features(self):
         features_dict = {}
@@ -44,6 +70,7 @@ with open('eeg_segment.p', 'rb') as pkl_file:
     signal = pickle.load(pkl_file)
 
 t = np.arange(0, len(signal)) * ts
-ff = TimeFeatures(signal, fs, ['mean', 'rms', 'zero_crossings'])
+ff = TimeFeatures(signal, fs, ['decorrelation_time', 'mean','skewness', 'peak_to_peak',
+                               'kurtosis', 'abs_mean', 'std', 'rms', 'zero_crossings'])
 computed_features = ff.compute_features()
 print(computed_features)

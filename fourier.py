@@ -9,8 +9,8 @@ EEG_BANDS = {
             'theta': (4, 8),
             'alpha': (8, 12),
             'beta': (12, 30),
-            'lower_gamma': (30, 80),
-            'upper_gamma': (80, 150)
+            'gamma1': (30, 80),
+            'gamma2': (80, 150)
             }
 
 
@@ -78,3 +78,4 @@ with open('eeg_segment.p', 'rb') as pkl_file:
 t = np.arange(0, len(signal)) * ts
 ff = FourierFeatures(signal, fs, features_list=['eeg_band_energies'])
 computed_features = ff.compute_features()
+print(computed_features)
