@@ -31,8 +31,8 @@ class FourierFeatures():
 
     def _amplitude_spectrum(self):
         """ Computes the amplitude spectrum ignoring amplitude values associated with negative frequencies """
-        amplitude_spectrum = np.fft.fft(signal)
-        amplitude_spectrum = np.abs( np.fft.fftshift(amplitude_spectrum) ) / fs
+        amplitude_spectrum = np.fft.fft(self.signal)
+        amplitude_spectrum = np.abs( np.fft.fftshift(amplitude_spectrum) ) / self.fs
         spectrum_middle = int( np.ceil(self.Np/2) ) 
         amplitude_spectrum = amplitude_spectrum[spectrum_middle:]  
         return amplitude_spectrum 
@@ -58,7 +58,7 @@ class FourierFeatures():
             band_energies[band] = relative_band_energy
         return band_energies
 
-    def compute_features(self):
+    def extract_features(self):
         features_dict = {}
         for feature_name in self.features_list:
             try:
@@ -66,16 +66,16 @@ class FourierFeatures():
                 output_params = method_to_call()
                 features_dict.update(output_params)
             except AttributeError:
-                print(f"Feature **{feature_name}** calculation method not implemented!")
+                print(f"Feature **{feature_name}** calculation method not implemented in FourierFeatures!")
         return features_dict
 
 # test eeg segment
-fs = 400
-ts = 1/fs
-with open('eeg_segment.p', 'rb') as pkl_file:
-    signal = pickle.load(pkl_file)
+# fs = 400
+# ts = 1/fs
+# with open('eeg_segment.p', 'rb') as pkl_file:
+#     signal = pickle.load(pkl_file)
 
-t = np.arange(0, len(signal)) * ts
-ff = FourierFeatures(signal, fs, features_list=['eeg_band_energies'])
-computed_features = ff.compute_features()
-print(computed_features)
+# t = np.arange(0, len(signal)) * ts
+# ff = FourierFeatures(signal, fs, features_list=['eeg_band_energies'])
+# computed_features = ff.extract_features()
+# print(computed_features)

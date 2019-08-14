@@ -52,7 +52,7 @@ class TimeFeatures():
         decorrelation_time = (zero_crossings_idxs[0] + 1) * self.ts # sample right after first zero crossing *  ts
         return {'decorrelation_time': decorrelation_time}
 
-    def compute_features(self):
+    def extract_features(self):
         features_dict = {}
         for feature_name in self.features_list:
             try:
@@ -60,17 +60,17 @@ class TimeFeatures():
                 output_params = method_to_call()
                 features_dict.update(output_params)
             except AttributeError:
-                print(f"Feature **{feature_name}** calculation method not implemented!")
+                print(f"Feature **{feature_name}** calculation method not implemented in TimeFeatures!")
         return features_dict
 
-# test eeg segment
-fs = 400
-ts = 1/fs
-with open('eeg_segment.p', 'rb') as pkl_file:
-    signal = pickle.load(pkl_file)
+# # test eeg segment
+# fs = 400
+# ts = 1/fs
+# with open('eeg_segment.p', 'rb') as pkl_file:
+#     signal = pickle.load(pkl_file)
 
-t = np.arange(0, len(signal)) * ts
-ff = TimeFeatures(signal, fs, ['decorrelation_time', 'mean','skewness', 'peak_to_peak',
-                               'kurtosis', 'abs_mean', 'std', 'rms', 'zero_crossings'])
-computed_features = ff.compute_features()
-print(computed_features)
+# t = np.arange(0, len(signal)) * ts
+# time_features = TimeFeatures(signal, fs, ['decorrelation_time', 'mean','skewness', 'peak_to_peak',
+#                                'kurtosis', 'abs_mean', 'std', 'rms', 'zero_crossings'])
+# computed_features = time_features.extract_features()
+# print(computed_features)
