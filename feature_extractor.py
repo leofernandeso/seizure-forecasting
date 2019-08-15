@@ -15,9 +15,9 @@ class FeatureExtractor():
         self.fs = fs
         self.ts = 1/fs
         self.features_to_extract = features_to_extract
-        self.feature_classes = list(features_to_extract.keys())
+        self._compute_single_channel_features()
 
-    def compute_single_channel_features(self):
+    def _compute_single_channel_features(self):
         self.channels_features = []
         for channel in self.channels_array:
             single_channel_features_dict = {}
@@ -27,21 +27,6 @@ class FeatureExtractor():
                 )
             self.channels_features.append(single_channel_features_dict)
 
-        # channels_fourier_features = []
-        # channels_time_features = []
-        # for channel in self.channels_array:
-        #     channels_fourier_features.append(
-        #         FourierFeatures(channel, self.fs, self.features_to_extract['fourier'])
-        #     )
-        #     channels_time_features.append(
-        #         TimeFeatures(channel, self.fs, self.features_to_extract['time'])
-        #     )
-        # self.channels_fourier_features = np.array(channels_fourier_features)
-        # self.channels_time_features = np.array(channels_time_features)
-    #def extract_features(self):
-
-
-
 def main():
 
     fs = 400 # sampling frequency
@@ -50,13 +35,12 @@ def main():
         channels = pickle.load(pkl_file)
 
     features_to_extract = {
-        'time': ['skewness', 'peak_to_peak', 'mean'],
+        'time': ['skewness', 'peak_to_peak', 'mean', 'kurtosis'],
         'fourier': ['eeg_band_energies']
     }
 
     feature_extractor = FeatureExtractor(channels, fs, features_to_extract=features_to_extract)
-    feature_extractor.compute_single_channel_features()
-    print(feature_extractor.channels_features[0]['fourier'].extract_features())
+    #print(feature_extractor.channels_features[0]['time'].extract_features())
 
 if __name__ == '__main__':
     main()
