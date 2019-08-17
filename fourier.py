@@ -4,6 +4,24 @@ import pickle
 from matplotlib import pyplot as plt
 
 
+"""
+    Possible features to be implemented : 
+    ===   Spectral edge frequency and power   ===
+        Most of the spectral power is comprised in the 0.5-40Hz band. We define spectral
+        edge frequency as the frequency below which 50% of the total power of the signal
+        is located. The spectral edge power is the value of the power existing below the
+        spectral edge frequency.
+    ===   Energy of wavelet coefficients  ===
+        Along with DFT, the Discrete Wavelet Transform is also applied using a 7-level decomposition and the
+        Daubechies 4 (db4) as the mother wavelet, to extract the detail
+        (64–128 Hz, 32–64 Hz, 16–32 Hz, 8–16 Hz, 4–8 Hz, 2–4 Hz, 1–2 Hz) and
+        approximation coefficients (<1 Hz). The 7-level decomposition is
+        selected based on the 256 Hz sampling frequency used when assembling
+        the CHB-MIT database, as it is the minimum depth required to cover the
+        fundamental frequency bands and allow for the separation of bellow the
+        1 Hz that is most predominantly occupied by artifacts.
+"""
+
 EEG_BANDS = {   
             'delta': (0, 4),
             'theta': (4, 8),
