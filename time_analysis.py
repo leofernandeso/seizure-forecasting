@@ -45,7 +45,7 @@ class TimeFeatures():
         return {'kurtosis': kurtosis(self.signal)}
 
     def decorrelation_time(self):
-        """ Returns decorrelation time (first zero-crossing of PACF).
+        """ Returns decorrelation time (first zero-crossing of partial autocorrelation function).
             The time is returned in terms of the sample number """
         autocorrelation_function = pacf(self.signal)
         zero_crossings_idxs = np.where(autocorrelation_function[:-1] * autocorrelation_function[1:] < 0)[0]

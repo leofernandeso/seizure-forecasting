@@ -60,7 +60,6 @@ class FourierFeatures():
         return power_spectrum
 
     def eeg_band_energies(self):
-    
         # Approximate energy calculation method (integral of power * dt) : 
         # energy = ts * sum(power_spectrum)
         # Since we're interested in calculating the percentage of the band energies, the term *self.ts* is irrelevant
