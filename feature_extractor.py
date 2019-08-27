@@ -3,6 +3,7 @@ import numpy as np
 from fourier import FourierFeatures
 from time_analysis import TimeFeatures
 from spatial_features import CorrelationFeatures
+from parsers.epieco import EpiEcoParser
 
 single_channel_feature_extractors_map = {
     'time': TimeFeatures,
@@ -44,37 +45,51 @@ class FeatureExtractor():
         return spatial_features_dict
     def extract_features(self):
         # Extracting single-channel features
-        features_dict = {}
+        single_channel_features_dict = {}
+        spatial_features_dict = {}
+
         for channel_idx, channel_feature in enumerate(self.channels_features):
             id_prefix = 'ch_' + str(channel_idx) + '_'
             for feature_type, feature_obj in channel_feature.items():
                 extracted_features = feature_obj.extract_features()
-                print({id_prefix+k:1 for k in extracted_features.keys()})
+                features_dict = {id_prefix+k:feature_val for k, feature_val in extracted_features.items()}
+                single_channel_features_dict.update(features_dict)
 
-        # Next -> extract spatial features and build dict for given segment
+        # Extracting multi-channel/spatial features
+        for feature_type, feature_obj in self.spatial_features.items():
+            extracted_features = feature_obj.extract_features()
+            spatial_features_dict.update(extracted_features)
+        #print("single_channel_features : {}".format(len(single_channel_features_dict)))
+        #print("spatial_features : {}".format(len(spatial_features_dict)))
+        return {**single_channel_features_dict, **spatial_features_dict}
+
             
 def main():
+    data_parser = EpiEcoParser("D:\\Faculdade\\TCC\\dados\\epilepsy_ecosystem")
+    fs = data_parser.fs
+    parser_args = dict(
+        patient_id=2,
+        segment_id=385,
+        _class=0
+    )
+    channels = data_parser.get_train_segment(**parser_args)
 
-    fs = 400 # sampling frequency    
     single_channel_features_to_extract = {
-        'time': ['skewness', 'peak_to_peak', 'mean', 'kurtosis'],
+        'time': ['skewness', 'peak_to_peak', 'mean', 'kurtosis', 'rms', 'zero_crossings', 
+                'std', 'abs_mean'],
         'fourier': ['eeg_band_energies']
     }
     spatial_features_to_extract = {
         'correlation': ['time_domain_correlation', 'frequency_domain_correlation']
-        #'graph_theory': []
     }
-
-    # Example 32 channels EEG segment
-    with open('eeg_segment_32channels.p', 'rb') as pkl_file:
-        channels = pickle.load(pkl_file)
 
     feature_extractor = FeatureExtractor(
                                         channels, fs,
                                         single_channel_features_to_extract=single_channel_features_to_extract,
                                         spatial_features_to_extract=spatial_features_to_extract)
-    print(feature_extractor.extract_features())
-    #print(feature_extractor.spatial_features['correlation'].extract_features())
+    extracted_features = feature_extractor.extract_features()
+    print(extracted_features)
+    print(len(extracted_features.keys()))
 
 if __name__ == '__main__':
     main()
