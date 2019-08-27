@@ -5,7 +5,6 @@ from matplotlib import pyplot as plt
 from scipy.stats import skew, kurtosis
 from statsmodels.tsa.stattools import pacf
 
-
 class TimeFeatures():
     def __init__(self, signal, fs, features_list=None):
         self.features_list = features_list
