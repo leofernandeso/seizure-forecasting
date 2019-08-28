@@ -28,7 +28,7 @@ class FeatureExtractor():
         channels_features = []
         for channel in self.channels_array:
             single_channel_features_dict = {}
-            for k, val in zip(self.single_channel_features_to_extract.keys(), self.single_channel_features_to_extract.values()):
+            for k, val in self.single_channel_features_to_extract.items():
                 single_channel_features_dict.update(
                     {k: single_channel_feature_extractors_map[k](channel, self.fs, val)}
                 )
@@ -36,7 +36,7 @@ class FeatureExtractor():
         return channels_features
     def _compute_spatial_features(self):
         channels_signals = [c['time'].signal for c in self.channels_features]
-        channels_spectra = [c['fourier'].amplitude_spectrum for c in self.channels_features]
+        channels_spectra = [c['fourier'].power_spectral_density for c in self.channels_features]
         spatial_features_dict = {}
         for k, val in self.spatial_features_to_extract.items():
             spatial_features_dict.update(
@@ -59,17 +59,17 @@ class FeatureExtractor():
         for feature_type, feature_obj in self.spatial_features.items():
             extracted_features = feature_obj.extract_features()
             spatial_features_dict.update(extracted_features)
-        #print("single_channel_features : {}".format(len(single_channel_features_dict)))
-        #print("spatial_features : {}".format(len(spatial_features_dict)))
+            
         return {**single_channel_features_dict, **spatial_features_dict}
 
             
 def main():
+
     data_parser = EpiEcoParser("D:\\Faculdade\\TCC\\dados\\epilepsy_ecosystem")
     fs = data_parser.fs
     parser_args = dict(
         patient_id=2,
-        segment_id=385,
+        segment_id=140,
         _class=0
     )
     channels = data_parser.get_train_segment(**parser_args)
@@ -77,19 +77,18 @@ def main():
     single_channel_features_to_extract = {
         'time': ['skewness', 'peak_to_peak', 'mean', 'kurtosis', 'rms', 'zero_crossings', 
                 'std', 'abs_mean'],
-        'fourier': ['eeg_band_energies']
+        'fourier': ['eeg_band_powers', 'spectral_edge_frequencies']
     }
     spatial_features_to_extract = {
         'correlation': ['time_domain_correlation', 'frequency_domain_correlation']
     }
-
+    
     feature_extractor = FeatureExtractor(
                                         channels, fs,
                                         single_channel_features_to_extract=single_channel_features_to_extract,
                                         spatial_features_to_extract=spatial_features_to_extract)
     extracted_features = feature_extractor.extract_features()
     print(extracted_features)
-    print(len(extracted_features.keys()))
 
 if __name__ == '__main__':
     main()

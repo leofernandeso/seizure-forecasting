@@ -1,4 +1,7 @@
 import numpy as np
+from scipy import signal as sci_signal
+from scipy.integrate import trapz, cumtrapz
+from scipy.interpolate import interp1d
 import math
 import pickle
 from matplotlib import pyplot as plt
@@ -30,6 +33,7 @@ EEG_BANDS = {
             'gamma1': (30, 80),
             'gamma2': (80, 150)
             }
+SPECTRAL_EDGE_FREQUENCIES_LIST = [80, 90, 95]
 
 
 class FourierFeatures():
@@ -39,41 +43,38 @@ class FourierFeatures():
         self.fs = fs
         self.ts = 1/fs
         self.Np = len(signal)
+        self.samples_in_segment = 2 * (1/0.5) * self.fs
         self._compute_base_variables()
 
     def _compute_base_variables(self):
-        self.f_axis = self.fs * ((np.arange(0, self.Np) - self.Np/2) / self.Np)
-        self.f_axis = self.f_axis[self.f_axis >= 0] # ignoring negative frequencies
-        self.amplitude_spectrum = self._amplitude_spectrum()
-        self.power_spectrum = self._power_spectrum()
+        self.f_axis, self.power_spectral_density = self._power_spectral_density()
+        self._freq_res = self.f_axis[1] - self.f_axis[0] # window frequency resolution 
+        self.total_power = trapz(self.power_spectral_density, dx=self._freq_res)
 
-    def _amplitude_spectrum(self):
-        """ Computes the amplitude spectrum ignoring amplitude values associated with negative frequencies """
-        amplitude_spectrum = np.fft.fft(self.signal)
-        amplitude_spectrum = np.abs( np.fft.fftshift(amplitude_spectrum) ) / self.fs
-        spectrum_middle = int( np.ceil(self.Np/2) ) 
-        amplitude_spectrum = amplitude_spectrum[spectrum_middle:]  
-        return amplitude_spectrum 
+    def _power_spectral_density(self):
+        freqs, psd = sci_signal.welch(self.signal, self.fs, nperseg=self.samples_in_segment)
+        return freqs, psd
 
-    def _power_spectrum(self):
-        power_spectrum = self.amplitude_spectrum ** 2
-        return power_spectrum
+    def spectral_edge_frequencies(self):
+        cum_power = cumtrapz(self.power_spectral_density, dx=self._freq_res)
+        edge_frequencies_dict = {}
+        for edge_factor in SPECTRAL_EDGE_FREQUENCIES_LIST:
+            superior_freqs = np.array(np.where(cum_power > (edge_factor/100) * self.total_power)) * self._freq_res
+            edge_frequency = superior_freqs[0][0] # first superior frequency
+            edge_frequencies_dict.update(
+                {'spectral_edge_freq_'+str(edge_factor): edge_frequency}
+            )
+        return edge_frequencies_dict
 
-    def eeg_band_energies(self):
-        # Approximate energy calculation method (integral of power * dt) : 
-        # energy = ts * sum(power_spectrum)
-        # Since we're interested in calculating the percentage of the band energies, the term *self.ts* is irrelevant
-        # (because it cancels out in the percentage formula)
-
-        band_energies = {}
-        total_energy = self.ts * np.sum(self.power_spectrum)
-        band_energies['total_energy'] = total_energy
+    def eeg_band_powers(self):
+        band_powers = {}
+        band_powers['total_power'] = self.total_power
         for band in EEG_BANDS:
             lower_freq, upper_freq = EEG_BANDS[band]
-            band_power_spectrum = self.power_spectrum[(self.f_axis >= lower_freq) & (self.f_axis < upper_freq)]
-            relative_band_energy = self.ts * np.sum(band_power_spectrum) / total_energy
-            band_energies[band] = relative_band_energy
-        return band_energies
+            band_power = self.power_spectral_density[(self.f_axis >= lower_freq) & (self.f_axis < upper_freq)]
+            relative_band_energy = trapz(band_power, dx=self._freq_res) / self.total_power
+            band_powers[band] = relative_band_energy
+        return band_powers
 
     def extract_features(self):
         features_dict = {}
@@ -86,13 +87,14 @@ class FourierFeatures():
                 print(f"Feature **{feature_name}** calculation method not implemented in FourierFeatures!")
         return features_dict
 
-# test eeg segment
 # fs = 400
 # ts = 1/fs
 # with open('eeg_segment.p', 'rb') as pkl_file:
 #     signal = pickle.load(pkl_file)
 
 # t = np.arange(0, len(signal)) * ts
-# ff = FourierFeatures(signal, fs, features_list=['eeg_band_energies'])
+# ff = FourierFeatures(signal, fs, features_list=['eeg_band_powers', 'spectral_edge_frequencies'])
 # computed_features = ff.extract_features()
 # print(computed_features)
+# plt.plot(ff.f_axis, ff.power_spectral_density)
+# plt.show()

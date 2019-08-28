@@ -15,7 +15,8 @@ class TimeFeatures():
         self._compute_base_variables()
 
     def _compute_base_variables(self):
-        self.duration = self.ts * self.Np; 
+        self.signal_first_derivative = np.diff(self.signal)
+        self.signal_second_derivative = np.diff(self.signal, n=2)
 
     def zero_crossings(self):
         zero_crossings_count = (self.signal[:-1] * self.signal[1:] < 0).sum()
@@ -63,7 +64,7 @@ class TimeFeatures():
                 print(f"Feature **{feature_name}** calculation method not implemented in TimeFeatures!")
         return features_dict
 
-# # test eeg segment
+# test eeg segment
 # fs = 400
 # ts = 1/fs
 # with open('eeg_segment.p', 'rb') as pkl_file:
