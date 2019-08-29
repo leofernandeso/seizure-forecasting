@@ -1,6 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
-from parsers.epieco import EpiEcoParser
+from parsing import EpiEcoParser
 
 def plot_eeg_comparison(channels_array1, channels_array2, fs, scale='log'):
     count = 1
@@ -23,24 +23,24 @@ def plot_eeg_comparison(channels_array1, channels_array2, fs, scale='log'):
     f2.show()
     input()
 
-def main():
-    data_parser = EpiEcoParser("D:\\Faculdade\\TCC\\dados\\epilepsy_ecosystem")
-    fs = data_parser.fs
-    parser_args_interictal = dict(
-        patient_id=2,
-        segment_id=137,
-        _class=0
-    )
-    parser_args_preictal = dict(
-        patient_id=2,
-        segment_id=137,
-        _class=1
-    )
-    channels_array_interictal = data_parser.get_train_segment(**parser_args_interictal)
-    channels_array_preictal = data_parser.get_train_segment(**parser_args_preictal)
-    plot_eeg_comparison(channels_array_interictal, channels_array_preictal, fs, scale='linear')
+# def main():
+#     data_parser = EpiEcoParser("D:\\Faculdade\\TCC\\dados\\epilepsy_ecosystem")
+#     fs = data_parser.fs
+#     parser_args_interictal = dict(
+#         patient_id=2,
+#         segment_id=137,
+#         _class=0
+#     )
+#     parser_args_preictal = dict(
+#         patient_id=2,
+#         segment_id=137,
+#         _class=1
+#     )
+#     channels_array_interictal = data_parser.get_train_segment(**parser_args_interictal)
+#     channels_array_preictal = data_parser.get_train_segment(**parser_args_preictal)
+#     plot_eeg_comparison(channels_array_interictal, channels_array_preictal, fs, scale='linear')
     
 
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()

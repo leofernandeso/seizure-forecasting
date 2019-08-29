@@ -1,9 +1,10 @@
 import pickle
 import numpy as np
+import feature_extractor_config as cfg
 from fourier import FourierFeatures
 from time_analysis import TimeFeatures
 from spatial_features import CorrelationFeatures
-from parsers.epieco import EpiEcoParser
+from parsing import EpiEcoParser
 
 single_channel_feature_extractors_map = {
     'time': TimeFeatures,
@@ -62,33 +63,37 @@ class FeatureExtractor():
             
         return {**single_channel_features_dict, **spatial_features_dict}
 
+def compute_windows_features(windows, fs):
+    features_dict = {}
+    for w_count, w in enumerate(windows):
+        feature_extractor = FeatureExtractor(
+                                            w, fs,
+                                            single_channel_features_to_extract=cfg.single_channel_features_to_extract,
+                                            spatial_features_to_extract=cfg.spatial_features_to_extract)
+        window_features = feature_extractor.extract_features()
+        w_prefix = 'w_' + str(w_count) + '_'
+        window_features_with_updated_keys = {w_prefix+k: feature_val for k, feature_val in window_features.items()}
+        features_dict.update(window_features_with_updated_keys)
+    return features_dict
             
 def main():
 
-    data_parser = EpiEcoParser("D:\\Faculdade\\TCC\\dados\\epilepsy_ecosystem")
+    data_parser = EpiEcoParser(**cfg.parser_args)
     fs = data_parser.fs
-    parser_args = dict(
+    segment_args = dict(
         patient_id=2,
         segment_id=140,
         _class=0
     )
-    channels = data_parser.get_train_segment(**parser_args)
-
-    single_channel_features_to_extract = {
-        'time': ['skewness', 'peak_to_peak', 'mean', 'kurtosis', 'rms', 'zero_crossings', 
-                'std', 'abs_mean'],
-        'fourier': ['eeg_band_powers', 'spectral_edge_frequencies']
-    }
-    spatial_features_to_extract = {
-        'correlation': ['time_domain_correlation', 'frequency_domain_correlation']
-    }
+    channels = data_parser.get_full_train_segment(**segment_args)
+    windows = data_parser.extract_windows(channels)
+    features = compute_windows_features(windows, fs)
+    print(len(features))
     
-    feature_extractor = FeatureExtractor(
-                                        channels, fs,
-                                        single_channel_features_to_extract=single_channel_features_to_extract,
-                                        spatial_features_to_extract=spatial_features_to_extract)
-    extracted_features = feature_extractor.extract_features()
-    print(extracted_features)
+    
+
+    
+    
 
 if __name__ == '__main__':
     main()
