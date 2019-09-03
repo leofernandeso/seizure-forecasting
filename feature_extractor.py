@@ -1,9 +1,16 @@
 import pickle
+import re
 import numpy as np
+
+# configuration file : change it for different feature extraction or different window sizes
 import feature_extractor_config as cfg
+
+# implemented features
 from fourier import FourierFeatures
 from time_analysis import TimeFeatures
 from spatial_features import CorrelationFeatures
+
+# epilepsy ecosystem parser
 from parsing import EpiEcoParser
 
 single_channel_feature_extractors_map = {
@@ -48,7 +55,6 @@ class FeatureExtractor():
         # Extracting single-channel features
         single_channel_features_dict = {}
         spatial_features_dict = {}
-
         for channel_idx, channel_feature in enumerate(self.channels_features):
             id_prefix = 'ch_' + str(channel_idx) + '_'
             for feature_type, feature_obj in channel_feature.items():
@@ -60,7 +66,7 @@ class FeatureExtractor():
         for feature_type, feature_obj in self.spatial_features.items():
             extracted_features = feature_obj.extract_features()
             spatial_features_dict.update(extracted_features)
-            
+
         return {**single_channel_features_dict, **spatial_features_dict}
 
 def compute_windows_features(windows, fs):
@@ -85,10 +91,12 @@ def main():
         segment_id=140,
         _class=0
     )
-    channels = data_parser.get_full_train_segment(**segment_args)
-    windows = data_parser.extract_windows(channels)
-    features = compute_windows_features(windows, fs)
-    print(len(features))
+    df = data_parser.get_all_studies_data()
+    #channels = data_parser.get_full_train_segment(**segment_args)
+    #windows = data_parser.extract_windows(channels)
+    #features = compute_windows_features(windows, fs)
+    #print(features)
+    #print(len(features))
     
     
 

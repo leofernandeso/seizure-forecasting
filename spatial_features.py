@@ -4,6 +4,13 @@ import pandas as pd
 import pickle
 from matplotlib import pyplot as plt
 
+# Implement weighted graph. Use correlation between channels to assign edge weight values.
+# Apply the following mathematical transformation in case one obtains negative correlation
+# w = math.sqrt(1 + (calculated_correlation))
+# Max weight = sqrt(2) (correlation = 1), min weight = 0 (correlation = -1)
+
+# Consider distance between electrodes ?
+
 class CorrelationFeatures():
     def __init__(self, channels_signals, channels_spectra, features_list=None):
         self.features_list = features_list
