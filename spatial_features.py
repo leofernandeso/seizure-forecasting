@@ -4,12 +4,17 @@ import networkx as nx
 import pickle
 import itertools
 import scipy
+import graph_utils
+import visualization
+import collections
 from matplotlib import pyplot as plt
 
 
 # Question : use max from cross correlation instead of simple correlation ? Idea in doing it :
 # account for possible lags between electrodes
 
+# For example, you
+# could select a threshold of one standard deviation above the median connectivity value.
 
 class SpatialFeatures():
     def __init__(self, channels_signals, channels_spectra, features_list=None):
@@ -18,7 +23,10 @@ class SpatialFeatures():
         self.channels_signals = np.array(channels_signals)
         self.channels_spectra = np.array(channels_spectra)
         self.brain_conn = self.brain_connectivity()
-        self.G = self._compute_weighted_graph() 
+        self.G = self._compute_weighted_graph(threshold=True)  # builds a graph and thresholds it
+        self.degree_dist_entropy()
+        #visualization.plot_graph(self.G)
+
 
     def _compute_correlation(self, metric_array, corr_type):
         """ Computes correlation features of a given array """
@@ -36,6 +44,27 @@ class SpatialFeatures():
             )
         print(len(correlation_dict))
         return correlation_dict
+
+    def _compute_weighted_graph(self, threshold=True):
+        
+        # defining connectivity measure
+        conn_measure = self.brain_conn
+
+        G = nx.Graph()
+
+        for key, channel_conn in conn_measure.items():
+            # node name processing
+            splitted_key = key.split('_')
+            node1 = int(splitted_key[2])
+            node2 = int(splitted_key[3])
+            
+            # adding edge with correlation as weight
+            G.add_edge(node1, node2, weight=channel_conn)
+
+        if threshold:
+            G = graph_utils.threshold_graph(G)
+
+        return G
 
     def brain_connectivity(self):
 
@@ -61,23 +90,11 @@ class SpatialFeatures():
 
         return connectivity_dict
 
-    def _compute_weighted_graph(self):
-        
-        # defining connectivity measure
-        conn_measure = self.brain_conn
+    def degree_dist_entropy(self):
+        return {'degree_entropy': graph_utils.degree_dist_entropy(self.G)}
 
-        G = nx.Graph()
-
-        for key, channel_conn in conn_measure.items():
-            # node name processing
-            splitted_key = key.split('_')
-            node1 = int(splitted_key[2])
-            node2 = int(splitted_key[3])
-            
-            # adding edge with correlation as weight
-            G.add_edge(node1, node2, weight=channel_conn)
-
-        return G
+    def avg_clust_coeff(self):
+        return {'avg_clust_coeff': nx.average_clustering(self.G, weight='weight')}
 
     def time_domain_correlation(self):
         return self._compute_correlation(self.channels_signals, 'time')
@@ -88,7 +105,6 @@ class SpatialFeatures():
     def extract_features(self):
         features_dict = {}
         for feature_name in self.features_list:
-            print(feature_name)
             try:
                 method_to_call = getattr(self, feature_name)
                 output_params = method_to_call()

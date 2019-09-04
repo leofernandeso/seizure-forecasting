@@ -1,4 +1,5 @@
 from matplotlib import pyplot as plt
+import networkx as nx
 import numpy as np
 
 def plot_eeg(channels_array, fs, scale='linear', savepath=None):
@@ -36,6 +37,13 @@ def plot_eeg_comparison(channels_array1, channels_array2, fs, scale='log'):
         count += 1
     f2.show()
     input()
+
+def plot_graph(G):
+    pos = nx.spring_layout(G)
+    colors = range(G.number_of_edges())
+    nx.draw(G, pos, node_color='#A0CBE2', edge_color=colors,
+            width=4, edge_cmap=plt.cm.Greys, with_labels=True)
+    plt.show()
 
 
 if __name__ == '__main__':

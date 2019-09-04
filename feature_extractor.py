@@ -95,7 +95,7 @@ def main():
     fs = data_parser.fs
     segment_args = dict(
         patient_id=2,
-        segment_id=655,
+        segment_id=8,
         _class=0
     )
     #df = data_parser.get_all_studies_data()
