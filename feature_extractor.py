@@ -102,7 +102,8 @@ def main():
     channels = data_parser.get_full_train_segment(**segment_args)
     windows = data_parser.extract_windows(channels)
     features = compute_windows_features(windows, fs)
-    #print(features)
+    print(features)
+    print(len(features))
     #visualization.plot_eeg(channels, fs)
 
     #print(features)

@@ -2,14 +2,13 @@ import numpy as np
 import pandas as pd
 import networkx as nx
 import pickle
+import itertools
+import scipy
 from matplotlib import pyplot as plt
 
-# Implement weighted graph. Use correlation between channels to assign edge weight values.
-# Apply the following mathematical transformation in case one obtains negative correlation
-# w = np.sqrt(1 + (calculated_correlation))
-# Max weight = sqrt(2) (correlation = 1), min weight = 0 (correlation = -1)
 
-# Consider distance between electrodes ?
+# Question : use max from cross correlation instead of simple correlation ? Idea in doing it :
+# account for possible lags between electrodes
 
 
 class SpatialFeatures():
@@ -18,8 +17,7 @@ class SpatialFeatures():
         self.n_channels = len(channels_signals)
         self.channels_signals = np.array(channels_signals)
         self.channels_spectra = np.array(channels_spectra)
-        self.time_correlation = self._compute_correlation(self.channels_signals, 'time')
-        self.freq_correlation = self._compute_correlation(self.channels_spectra, 'freq')
+        self.brain_conn = self.brain_connectivity()
         self.G = self._compute_weighted_graph() 
 
     def _compute_correlation(self, metric_array, corr_type):
@@ -36,40 +34,61 @@ class SpatialFeatures():
             correlation_dict.update(
                 {corr_id: corr}
             )
+        print(len(correlation_dict))
         return correlation_dict
 
-    def _compute_weighted_graph(self, corr_type='time'):
+    def brain_connectivity(self):
+
+        channels_list = list(range(0, self.n_channels))
+        count = 0
+
+        connectivity_array = np.zeros((self.n_channels, self.n_channels))
+        for c1, c2 in itertools.combinations(channels_list, 2):
+            cross_corr = scipy.signal.correlate(self.channels_signals[c1], self.channels_signals[c2], method='fft')
+            brain_conn = max(cross_corr)
+            connectivity_array[c1][c2] = brain_conn
+            connectivity_array[c2][c1] = brain_conn            
+            count += 1
+        
+        connectivity_array = connectivity_array / np.amax(connectivity_array)
+        
+        connectivity_dict = {}
+        for c1, c2 in itertools.combinations(channels_list, 2):
+            k = "brain_conn_{}_{}".format(c1,c2)
+            connectivity_dict.update(
+                {k: connectivity_array[c1][c2]}
+            )
+
+        return connectivity_dict
+
+    def _compute_weighted_graph(self):
         
         # defining connectivity measure
-        if corr_type == 'time':
-            corr_measure = self.time_correlation
-        elif corr_type == 'freq':
-            corr_measure = self.freq_correlation
+        conn_measure = self.brain_conn
 
-        print(corr_measure)
         G = nx.Graph()
 
-        for key, channel_corr in corr_measure.items():
+        for key, channel_conn in conn_measure.items():
             # node name processing
             splitted_key = key.split('_')
             node1 = int(splitted_key[2])
             node2 = int(splitted_key[3])
-
+            
             # adding edge with correlation as weight
-            G.add_edge(node1, node2, weight=channel_corr)
+            G.add_edge(node1, node2, weight=channel_conn)
 
-        print(G.degree())
         return G
 
     def time_domain_correlation(self):
-        return self.time_correlation
+        return self._compute_correlation(self.channels_signals, 'time')
 
     def frequency_domain_correlation(self):
-        return self.freq_correlation
+        return self._compute_correlation(self.channels_spectra, 'freq')
 
     def extract_features(self):
         features_dict = {}
         for feature_name in self.features_list:
+            print(feature_name)
             try:
                 method_to_call = getattr(self, feature_name)
                 output_params = method_to_call()
