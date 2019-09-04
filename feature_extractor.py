@@ -2,13 +2,15 @@ import pickle
 import re
 import numpy as np
 
+import visualization
+
 # configuration file : change it for different feature extraction or different window sizes
 import feature_extractor_config as cfg
 
 # implemented features
 from fourier import FourierFeatures
 from time_analysis import TimeFeatures
-from spatial_features import CorrelationFeatures
+from spatial_features import SpatialFeatures
 
 # epilepsy ecosystem parser
 from parsing import EpiEcoParser
@@ -18,8 +20,12 @@ single_channel_feature_extractors_map = {
     'fourier': FourierFeatures
 }
 spatial_feature_extractors_map = {
-    'correlation': CorrelationFeatures
+    'spatial': SpatialFeatures
 }
+
+# graph_features_map = {
+#     'graph_theory': GraphFeatures
+# }
 
 class FeatureExtractor():
     def __init__(self, channels_array, fs, single_channel_features_to_extract=None, spatial_features_to_extract=None):
@@ -42,6 +48,7 @@ class FeatureExtractor():
                 )
             channels_features.append(single_channel_features_dict)
         return channels_features
+
     def _compute_spatial_features(self):
         channels_signals = [c['time'].signal for c in self.channels_features]
         channels_spectra = [c['fourier'].power_spectral_density for c in self.channels_features]
@@ -88,13 +95,16 @@ def main():
     fs = data_parser.fs
     segment_args = dict(
         patient_id=2,
-        segment_id=140,
+        segment_id=655,
         _class=0
     )
-    df = data_parser.get_all_studies_data()
-    #channels = data_parser.get_full_train_segment(**segment_args)
-    #windows = data_parser.extract_windows(channels)
-    #features = compute_windows_features(windows, fs)
+    #df = data_parser.get_all_studies_data()
+    channels = data_parser.get_full_train_segment(**segment_args)
+    windows = data_parser.extract_windows(channels)
+    features = compute_windows_features(windows, fs)
+    #print(features)
+    #visualization.plot_eeg(channels, fs)
+
     #print(features)
     #print(len(features))
     

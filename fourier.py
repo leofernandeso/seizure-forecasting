@@ -59,11 +59,16 @@ class FourierFeatures():
         cum_power = cumtrapz(self.power_spectral_density, dx=self._freq_res)
         edge_frequencies_dict = {}
         for edge_factor in SPECTRAL_EDGE_FREQUENCIES_LIST:
-            superior_freqs = np.array(np.where(cum_power > (edge_factor/100) * self.total_power)) * self._freq_res
-            edge_frequency = superior_freqs[0][0] # first superior frequency
+            superior_freqs = np.array(np.where(cum_power >= (edge_factor/100) * self.total_power)) * self._freq_res
+            if self.total_power != 0:
+                edge_frequency = superior_freqs[0][0] # first superior frequency
+            else:
+                edge_frequency = None # checking for dropouts
             edge_frequencies_dict.update(
                 {'spectral_edge_freq_'+str(edge_factor): edge_frequency}
             )
+        if None in edge_frequencies_dict.values():
+            print(" *** Found zero edge frequency !!! *** ")
         return edge_frequencies_dict
 
     def eeg_band_powers(self):
