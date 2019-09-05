@@ -12,7 +12,7 @@ def threshold_graph(G, keep_weights=True):
     original_weights = [d[-1]['weight'] for d in edge_data]
 
     # one std above median
-    min_weight = np.median(original_weights) + np.std(original_weights)
+    min_weight = np.median(original_weights) + 2*np.std(original_weights)
 
     Gnew = nx.Graph()
     for (u,v,w) in G.edges(data=True):

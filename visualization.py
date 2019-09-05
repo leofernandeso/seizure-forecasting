@@ -39,10 +39,10 @@ def plot_eeg_comparison(channels_array1, channels_array2, fs, scale='log'):
     input()
 
 def plot_graph(G):
+    edges, weights = zip(*nx.get_edge_attributes(G,'weight').items())
     pos = nx.spring_layout(G)
-    colors = range(G.number_of_edges())
-    nx.draw(G, pos, node_color='#A0CBE2', edge_color=colors,
-            width=4, edge_cmap=plt.cm.Greys, with_labels=True)
+    nx.draw(G, pos, node_color='b', edgelist=edges, edge_color=weights,
+                 width=1.0, edge_cmap=plt.cm.Blues, with_labels=True)
     plt.show()
 
 

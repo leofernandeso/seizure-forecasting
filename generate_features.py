@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import time
 
 # main feature extractor 
 from feature_extractor import *
@@ -16,10 +17,12 @@ def generate_features(paths_df, data_parser, output_fn, dropout_path):
                 print('Writing row {}/{} - File {}...\n'.format(count, len(paths_df), row['base_filepath']))
 
                 # Getting separated windows and extracting features
+        
+
                 channels = data_parser.load_segment_from_path(row['abs_filepath'])
                 windows = data_parser.extract_windows(channels)
                 features = compute_windows_features(windows, data_parser.fs)
-                #print(features)
+                
                 
                 if not None in features.values():
                         # Appending final information

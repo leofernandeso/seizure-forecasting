@@ -2,8 +2,10 @@ import numpy as np
 import pandas as pd
 import networkx as nx
 import pickle
+import time
 import itertools
-import scipy
+from scipy.signal import correlate, coherence
+from scipy.integrate import trapz
 import graph_utils
 import visualization
 import collections
@@ -16,16 +18,22 @@ from matplotlib import pyplot as plt
 # For example, you
 # could select a threshold of one standard deviation above the median connectivity value.
 
+
+keep_weights = True
+threshold = True
+COHERENCE_MIN_FREQ = 0
+COHERENCE_MAX_FREQ = 30
+
 class SpatialFeatures():
-    def __init__(self, channels_signals, channels_spectra, features_list=None):
+    def __init__(self, channels_signals, channels_spectra, fs, features_list=None):
         self.features_list = features_list
         self.n_channels = len(channels_signals)
+        self.fs = fs
         self.channels_signals = np.array(channels_signals)
         self.channels_spectra = np.array(channels_spectra)
-        self.brain_conn = self.brain_connectivity()
-        self.G = self._compute_weighted_graph(threshold=True)  # builds a graph and thresholds it
-        self.degree_dist_entropy()
-        #visualization.plot_graph(self.G)
+        self.time_correlation = self._compute_correlation(channels_signals, 'time')
+        self.chann_coherence = self._compute_channel_coherence()
+        self.G, self.G_thresh = self._compute_weighted_graphs()  # builds a graph and thresholds it
 
 
     def _compute_correlation(self, metric_array, corr_type):
@@ -42,13 +50,26 @@ class SpatialFeatures():
             correlation_dict.update(
                 {corr_id: corr}
             )
-        print(len(correlation_dict))
         return correlation_dict
 
-    def _compute_weighted_graph(self, threshold=True):
+    def _compute_channel_coherence(self):
+        channels_list = list(range(0, self.n_channels))
+        coherence_dict = {}
+        for c1, c2 in itertools.combinations(channels_list, 2):
+            f, Cxy = coherence(self.channels_signals[c1], self.channels_signals[c2], self.fs)
+            cropped_Cxy = Cxy[(f >= COHERENCE_MIN_FREQ) & (f < COHERENCE_MAX_FREQ)]
+            freq_res = f[1] - f[0]
+            band_mean_coherence = trapz(cropped_Cxy, dx=freq_res)
+            coherence_id = 'ch_coher_{}_{}'.format(c1, c2)
+            coherence_dict.update(
+                {coherence_id: band_mean_coherence}
+            )
+        return coherence_dict
+
+    def _compute_weighted_graphs(self):
         
         # defining connectivity measure
-        conn_measure = self.brain_conn
+        conn_measure = self.chann_coherence
 
         G = nx.Graph()
 
@@ -59,12 +80,11 @@ class SpatialFeatures():
             node2 = int(splitted_key[3])
             
             # adding edge with correlation as weight
-            G.add_edge(node1, node2, weight=channel_conn)
+            w = channel_conn  # perform any transformation here
+            G.add_edge(node1, node2, weight=w)
 
-        if threshold:
-            G = graph_utils.threshold_graph(G)
-
-        return G
+        G_thresh = graph_utils.threshold_graph(G, keep_weights=keep_weights)
+        return G, G_thresh
 
     def brain_connectivity(self):
 
@@ -73,7 +93,7 @@ class SpatialFeatures():
 
         connectivity_array = np.zeros((self.n_channels, self.n_channels))
         for c1, c2 in itertools.combinations(channels_list, 2):
-            cross_corr = scipy.signal.correlate(self.channels_signals[c1], self.channels_signals[c2], method='fft')
+            cross_corr = scipy.signal.correlate(self.channels_signals[c1], self.channels_signals[c2], method='auto')
             brain_conn = max(cross_corr)
             connectivity_array[c1][c2] = brain_conn
             connectivity_array[c2][c1] = brain_conn            
@@ -87,20 +107,41 @@ class SpatialFeatures():
             connectivity_dict.update(
                 {k: connectivity_array[c1][c2]}
             )
-
         return connectivity_dict
 
-    def degree_dist_entropy(self):
-        return {'degree_entropy': graph_utils.degree_dist_entropy(self.G)}
+    def degree_entropy(self):
+        return {'degree_entropy': graph_utils.degree_dist_entropy(self.G_thresh)}
+
+    def nr_components(self):
+        return {'nr_components': nx.number_connected_components(self.G_thresh)}
+
+    # def avg_shortest_path(self):
+    """ Problem : disconnected components after threshold """
+    #     for g in nx.connected_component_subgraphs(self.G):
+    #         avg_shtst_path = nx.average_shortest_path_length(g, weight='weight')
+    #         print(avg_shtst_path)
+    #     print(self.G.edges(data=True))
+    #     visualization.plot_graph(self.G)
+    #     return {'avg_shtst_path': 1}
+    
+    #def transitivity(self):
+    """ 
+        Problem : disconnected components after threshold : trans = 0.
+        Full graph : always 1
+    """
+    #    return {'transitivity': nx.transitivity(self.G)}
 
     def avg_clust_coeff(self):
         return {'avg_clust_coeff': nx.average_clustering(self.G, weight='weight')}
 
     def time_domain_correlation(self):
-        return self._compute_correlation(self.channels_signals, 'time')
+        return self.time_correlation
 
     def frequency_domain_correlation(self):
-        return self._compute_correlation(self.channels_spectra, 'freq')
+        return self.freq_correlation
+
+    def channel_coherence(self):
+        return self.chann_coherence
 
     def extract_features(self):
         features_dict = {}

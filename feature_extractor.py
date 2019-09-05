@@ -1,6 +1,6 @@
 import pickle
-import re
 import numpy as np
+import time
 
 import visualization
 
@@ -55,19 +55,23 @@ class FeatureExtractor():
         spatial_features_dict = {}
         for k, val in self.spatial_features_to_extract.items():
             spatial_features_dict.update(
-                {k: spatial_feature_extractors_map[k](channels_signals, channels_spectra, val)}
+                {k: spatial_feature_extractors_map[k](channels_signals, channels_spectra, self.fs, val)}
             )
         return spatial_features_dict
     def extract_features(self):
-        # Extracting single-channel features
+
+        
         single_channel_features_dict = {}
         spatial_features_dict = {}
+
+        # Extracting single-channel features
         for channel_idx, channel_feature in enumerate(self.channels_features):
             id_prefix = 'ch_' + str(channel_idx) + '_'
             for feature_type, feature_obj in channel_feature.items():
                 extracted_features = feature_obj.extract_features()
                 features_dict = {id_prefix+k:feature_val for k, feature_val in extracted_features.items()}
                 single_channel_features_dict.update(features_dict)
+        
 
         # Extracting multi-channel/spatial features
         for feature_type, feature_obj in self.spatial_features.items():
@@ -89,25 +93,25 @@ def compute_windows_features(windows, fs):
         features_dict.update(window_features_with_updated_keys)
     return features_dict
             
-def main():
+# def main():
 
-    data_parser = EpiEcoParser(**cfg.parser_args)
-    fs = data_parser.fs
-    segment_args = dict(
-        patient_id=2,
-        segment_id=8,
-        _class=0
-    )
-    #df = data_parser.get_all_studies_data()
-    channels = data_parser.get_full_train_segment(**segment_args)
-    windows = data_parser.extract_windows(channels)
-    features = compute_windows_features(windows, fs)
-    print(features)
-    print(len(features))
-    #visualization.plot_eeg(channels, fs)
+#     data_parser = EpiEcoParser(**cfg.parser_args)
+#     fs = data_parser.fs
+#     segment_args = dict(
+#         patient_id=2,
+#         segment_id=101,
+#         _class=1
+#     )
+#     #df = data_parser.get_all_studies_data()
+#     channels = data_parser.get_full_train_segment(**segment_args)
+#     windows = data_parser.extract_windows(channels)
+#     features = compute_windows_features(windows, fs)
+#     print(features)
+#     print(len(features))
+#     #visualization.plot_eeg(channels, fs)
 
-    #print(features)
-    #print(len(features))
+#     #print(features)
+#     #print(len(features))
     
     
 
