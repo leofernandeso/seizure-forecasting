@@ -2,17 +2,21 @@ import sys
 import re
 import numpy as np
 import pandas as pd
-import h5py
 import os
+import h5py
+import pickle
+from sklearn.model_selection import train_test_split
+
+
+df_subset_path = "C:\\Users\\Leonardo\\Documents\\Faculdade\\TCC\\processed_data\\subsets"
 
 class EpiEcoParser():
-    def __init__(self, base_folder, windows_range, study='all'):
+    def __init__(self, base_folder, windows_range):
         self.base_folder = base_folder
         self.train_folder = self.base_folder + '\\Train'
         self.test_folder = self.base_folder + '\\Test'
         self.fs = 400 
         self.windows_range = windows_range
-        self.study = study
 
     def _get_all_studies_data(self, subset='Train'):
 
@@ -48,12 +52,15 @@ class EpiEcoParser():
         return file_path
 
     def process_dataset(self):
-        if self.study == 'all':
-            return self._get_all_studies_data()
-        else:
-            # call self._process_study()
-            return None
-    
+        df_train = self._get_all_studies_data()
+        df_train, df_val = train_test_split(df_train, test_size=0.2, random_state=42, stratify=df_train['class'])
+        with open(df_subset_path+'\\train.p', 'wb') as train_df_file:
+            pickle.dump(df_train, train_df_file)     
+        with open(df_subset_path+'\\validation.p', 'wb') as val_df_file:            
+            pickle.dump(df_val, val_df_file)
+        return df_train, df_val
+        
+
     def load_segment_from_path(self, path):
         eeg_file = h5py.File(path, 'r')
         eeg_data = np.array(eeg_file['data'].get('table'))

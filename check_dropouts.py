@@ -15,7 +15,7 @@ def main():
     base_folder = 'D:\\Faculdade\\TCC\\dados\\epilepsy_ecosystem\\Train'
     dropout_filepath = base_folder + "\\drop_out_segments.txt"
 
-    save_plots_folder = "D:\\Faculdade\\TCC\\dados\\epilepsy_ecosystem\\dropouts"
+    save_plots_folder = "D:\\Faculdade\\TCC\\dados\\epilepsy_ecosystem\\dropouts_imgs"
     if not os.path.exists(save_plots_folder):
         os.mkdir(save_plots_folder)
     else:

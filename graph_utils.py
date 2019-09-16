@@ -12,7 +12,7 @@ def threshold_graph(G, keep_weights=True):
     original_weights = [d[-1]['weight'] for d in edge_data]
 
     # one std above median
-    min_weight = np.median(original_weights) + 2*np.std(original_weights)
+    min_weight = np.median(original_weights) + 3*np.std(original_weights)
 
     Gnew = nx.Graph()
     for (u,v,w) in G.edges(data=True):
@@ -26,8 +26,12 @@ def threshold_graph(G, keep_weights=True):
 
 def degree_dist_entropy(G):
     degree_sequence = [d for n, d in G.degree()]
-    hist = np.histogram(degree_sequence, bins=len(G.nodes))
-    hist_values = hist[0]
-    p_k = hist_values[hist_values != 0] / len(G.nodes)
-    return -sum(p_k * np.log10(p_k)) 
+    if len(degree_sequence) != 0:
+        hist = np.histogram(degree_sequence, bins=len(G.nodes))
+        hist_values = hist[0]
+        p_k = hist_values[hist_values != 0] / len(G.nodes)
+        entropy = -sum(p_k * np.log10(p_k)) 
+    else:
+        entropy = 0
+    return entropy
         
