@@ -2,6 +2,12 @@ __pycache__
 *.joblib
 *.p
 feature_extractor_config.py
+<<<<<<< HEAD
 output.txt
 correlation.csv
 most_correlated.csv
+=======
+eeg_segment.p
+eeg_segment_32channels.p
+output.txt
+>>>>>>> parent of 98cda7d... added a lot of stuff since last commit

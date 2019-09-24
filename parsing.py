@@ -2,8 +2,8 @@ import sys
 import re
 import numpy as np
 import pandas as pd
-import os
 import h5py
+<<<<<<< HEAD
 import pickle
 import mne
 import feature_extractor_config as cfg
@@ -12,6 +12,9 @@ from sklearn.model_selection import train_test_split, StratifiedKFold
 from chb_label_wrapper import ChbLabelWrapper
 
 df_subset_path = "C:\\Users\\Leonardo\\Documents\\Faculdade\\TCC\\processed_data\\subsets"
+=======
+import os
+>>>>>>> parent of 98cda7d... added a lot of stuff since last commit
 
 def get_segment_windows(fs, segment_array, window_ranges):
     transposed_array = np.transpose(segment_array)
@@ -56,12 +59,13 @@ def divide_interictal_files(fs, data, interictal_window):
         yield data[:, N_w1:N_w2]
 
 class EpiEcoParser():
-    def __init__(self, base_folder, windows_range):
+    def __init__(self, base_folder, windows_range, study='all'):
         self.base_folder = base_folder
         self.train_folder = self.base_folder + '\\Train'
         self.test_folder = self.base_folder + '\\Test'
         self.fs = 400 
         self.windows_range = windows_range
+        self.study = study
 
     def _get_all_studies_data(self, subset='Train'):
 
@@ -97,6 +101,7 @@ class EpiEcoParser():
         return file_path
 
     def process_dataset(self):
+<<<<<<< HEAD
         df_train = self._get_all_studies_data()
         df_train, df_val = train_test_split(df_train, test_size=0.2, random_state=42, stratify=df_train['class'])
         with open(df_subset_path+'\\train.p', 'wb') as train_df_file:
@@ -132,6 +137,14 @@ class EpiEcoParser():
             
             counter += 1
 
+=======
+        if self.study == 'all':
+            return self._get_all_studies_data()
+        else:
+            # call self._process_study()
+            return None
+    
+>>>>>>> parent of 98cda7d... added a lot of stuff since last commit
     def load_segment_from_path(self, path):
         eeg_file = h5py.File(path, 'r')
         eeg_data = np.array(eeg_file['data'].get('table'))

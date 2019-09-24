@@ -50,9 +50,8 @@ class FeatureExtractor():
         return channels_features
 
     def _compute_spatial_features(self):
-        channels_signals = self.channels_array
+        channels_signals = [c['time'].signal for c in self.channels_features]
         channels_spectra = [c['fourier'].power_spectral_density for c in self.channels_features]
-
         spatial_features_dict = {}
         for k, val in self.spatial_features_to_extract.items():
             spatial_features_dict.update(
@@ -81,31 +80,21 @@ class FeatureExtractor():
 
         return {**single_channel_features_dict, **spatial_features_dict}
 
-def compute_windows_features(windows, fs, join_windows=True):
-
-    if join_windows:
-        features_to_return = {}
-    else:
-        features_to_return = []
-
-
+def compute_windows_features(windows, fs):
+    features_dict = {}
     for w_count, w in enumerate(windows):
         feature_extractor = FeatureExtractor(
                                             w, fs,
                                             single_channel_features_to_extract=cfg.single_channel_features_to_extract,
                                             spatial_features_to_extract=cfg.spatial_features_to_extract)
         window_features = feature_extractor.extract_features()
-
-        if join_windows:
-            w_prefix = 'w_' + str(w_count) + '_'
-            window_features_with_updated_keys = {w_prefix+k: feature_val for k, feature_val in window_features.items()}
-            features_to_return.update(window_features_with_updated_keys)
-        else:
-            features_to_return.append(window_features)
-
-    return features_to_return
+        w_prefix = 'w_' + str(w_count) + '_'
+        window_features_with_updated_keys = {w_prefix+k: feature_val for k, feature_val in window_features.items()}
+        features_dict.update(window_features_with_updated_keys)
+    return features_dict
             
 # def main():
+
 #     data_parser = EpiEcoParser(**cfg.parser_args)
 #     fs = data_parser.fs
 #     segment_args = dict(
@@ -113,13 +102,21 @@ def compute_windows_features(windows, fs, join_windows=True):
 #         segment_id=101,
 #         _class=1
 #     )
+#     #df = data_parser.get_all_studies_data()
 #     channels = data_parser.get_full_train_segment(**segment_args)
 #     windows = data_parser.extract_windows(channels)
-#     features = compute_windows_features(windows, fs, join_windows=False)
-#     print(features[0])
-#     print(len(features[0]))
+#     features = compute_windows_features(windows, fs)
+#     print(features)
+#     print(len(features))
+#     #visualization.plot_eeg(channels, fs)
+
+#     #print(features)
+#     #print(len(features))
     
     
 
-# if __name__ == '__main__':
-#     main()
+    
+    
+
+if __name__ == '__main__':
+    main()

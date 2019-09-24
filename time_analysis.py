@@ -37,7 +37,6 @@ class TimeFeatures():
                 output_params = method_to_call(self.signal_second_derivative)
                 features_dict.update({'delta2_' + feature_name: output_params})
 
-
             except AttributeError:
                 print(f"Feature **{feature_name}** calculation method not implemented in TimeFeatures!")
         return features_dict
