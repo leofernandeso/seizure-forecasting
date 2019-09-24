@@ -1,8 +1,7 @@
 __pycache__
 *.joblib
+*.p
 feature_extractor_config.py
-eeg_segment.p
-eeg_segment_32channels.p
 output.txt
 correlation.csv
 most_correlated.csv
