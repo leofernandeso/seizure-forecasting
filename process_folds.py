@@ -1,10 +1,10 @@
-from generate_features import *
+from generate_features_epieco import *
 import os
 
 from parsing import EpiEcoParser
 
 base_folder = "D:\\Faculdade\\TCC\\dados\\epilepsy_ecosystem\\folds"
-data_parser = EpiEcoParser(**cfg.parser_args)
+data_parser = EpiEcoParser(**cfg.epieco_parser_args)
 
 for dir in os.listdir(base_folder):
     fold_folder = os.path.join(base_folder, dir)

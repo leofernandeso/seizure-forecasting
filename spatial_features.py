@@ -22,7 +22,7 @@ from matplotlib import pyplot as plt
 keep_weights = True
 threshold = True
 COHERENCE_MIN_FREQ = 0
-COHERENCE_MAX_FREQ = 30
+COHERENCE_MAX_FREQ = 80
 
 class SpatialFeatures():
     def __init__(self, channels_signals, channels_spectra, fs, features_list=None):
@@ -30,11 +30,11 @@ class SpatialFeatures():
         self.n_channels = len(channels_signals)
         self.fs = fs
         self.channels_signals = np.array(channels_signals)
-        self.channels_spectra = np.array(channels_spectra)
-        self.time_correlation = self._compute_correlation(channels_signals, 'time')
-        self.chann_coherence = self._compute_channel_coherence()
+        self.channels_spectra = np.array(channels_spectra)        
+        self.time_correlation = self._compute_correlation(self.channels_signals, 'time')
+        self.freq_correlation = self._compute_correlation(self.channels_spectra, 'freq')
         self.G, self.G_thresh = self._compute_weighted_graphs()  # builds a graph and thresholds it
-
+        # visualization.plot_graph(self.G)
 
     def _compute_correlation(self, metric_array, corr_type):
         """ Computes correlation features of a given array """
@@ -55,12 +55,14 @@ class SpatialFeatures():
     def _compute_channel_coherence(self):
         channels_list = list(range(0, self.n_channels))
         coherence_dict = {}
-        for c1, c2 in itertools.combinations(channels_list, 2):
-            f, Cxy = coherence(self.channels_signals[c1], self.channels_signals[c2], self.fs)
+        for c1, c2 in itertools.combinations(channels_list, 2):            
+            f, Cxy = coherence(self.channels_signals[c1], self.channels_signals[c2], self.fs, noverlap=0)
             cropped_Cxy = Cxy[(f >= COHERENCE_MIN_FREQ) & (f < COHERENCE_MAX_FREQ)]
             freq_res = f[1] - f[0]
-            band_mean_coherence = trapz(cropped_Cxy, dx=freq_res)
+            band_integral = trapz(cropped_Cxy, dx=freq_res)
+            band_mean_coherence = band_integral if band_integral >= 0 else 0 
             coherence_id = 'ch_coher_{}_{}'.format(c1, c2)
+            
             coherence_dict.update(
                 {coherence_id: band_mean_coherence}
             )
@@ -69,8 +71,7 @@ class SpatialFeatures():
     def _compute_weighted_graphs(self):
         
         # defining connectivity measure
-        conn_measure = self.chann_coherence
-
+        conn_measure = self.time_correlation
         G = nx.Graph()
 
         for key, channel_conn in conn_measure.items():
@@ -80,7 +81,7 @@ class SpatialFeatures():
             node2 = int(splitted_key[3])
             
             # adding edge with correlation as weight
-            w = channel_conn  # perform any transformation here
+            w = ((channel_conn + 1) / 2) ** 3  # perform any transformation here
             G.add_edge(node1, node2, weight=w)
 
         G_thresh = graph_utils.threshold_graph(G, keep_weights=keep_weights)
@@ -110,19 +111,17 @@ class SpatialFeatures():
         return connectivity_dict
 
     def degree_entropy(self):
-        return {'degree_entropy': graph_utils.degree_dist_entropy(self.G_thresh)}
+        return {'degree_entropy': graph_utils.degree_dist_entropy(self.G)}
 
     def nr_components(self):
         return {'nr_components': nx.number_connected_components(self.G_thresh)}
 
-    # def avg_shortest_path(self):
-    """ Problem : disconnected components after threshold """
-    #     for g in nx.connected_component_subgraphs(self.G):
-    #         avg_shtst_path = nx.average_shortest_path_length(g, weight='weight')
-    #         print(avg_shtst_path)
-    #     print(self.G.edges(data=True))
-    #     visualization.plot_graph(self.G)
-    #     return {'avg_shtst_path': 1}
+    def avg_shortest_path(self):
+        avg_shtst_path = nx.average_shortest_path_length(self.G, weight='weight')
+        return {'avg_shtst_path': avg_shtst_path}
+
+    def nodes_after_threshold(self):
+        return {'nodes_tresh': len(self.G_thresh)}
     
     #def transitivity(self):
     """ 
@@ -132,7 +131,39 @@ class SpatialFeatures():
     #    return {'transitivity': nx.transitivity(self.G)}
 
     def avg_clust_coeff(self):
-        return {'avg_clust_coeff': nx.average_clustering(self.G, weight='weight')}
+        return {'avg_clust_coeff': np.log2(nx.average_clustering(self.G, weight='weight'))}
+
+    def global_efficiency(self):
+        return {'glob_efficiency': nx.global_efficiency(self.G_thresh)}
+
+    def eigenvector_centrality(self):
+        eig_cent_dict = nx.eigenvector_centrality(self.G, weight='weight')
+        return {'eigenv_centr_'+str(ch): np.log2(eig_cent) for ch, eig_cent in eig_cent_dict.items()}
+    
+    def betweenness_centrality(self):
+        between_cent_dict = nx.betweenness_centrality(self.G, weight='weight')
+        return {'btween_centr_'+str(ch): np.log2(betwns_centr) for ch, betwns_centr in between_cent_dict.items()}
+
+    def total_assortativity(self):
+        assort_dict = {'total_assortativity': nx.degree_pearson_correlation_coefficient(self.G, weight='weight')}
+        return assort_dict
+
+    def density(self):
+        return {'density': nx.density(self.G_thresh)}
+
+    def nodes_degree(self):
+        degrees_dict = {}
+        degrees = self.G.degree(weight='weight')
+        for d in degrees:
+            ch, degree = d
+            degrees_dict.update(
+                {'degree_'+str(ch): degree}
+            )
+        return degrees_dict
+
+    def clustering_coeff(self):
+        clustering_coeff = nx.clustering(self.G, weight='weight')
+        return {'clust_coeff_'+str(ch): np.log2(clust_coeff) for ch, clust_coeff in clustering_coeff.items()}
 
     def time_domain_correlation(self):
         return self.time_correlation
@@ -151,5 +182,5 @@ class SpatialFeatures():
                 output_params = method_to_call()
                 features_dict.update(output_params)
             except AttributeError:
-                print(f"Feature **{feature_name}** calculation method not implemented in FourierFeatures!")
+                print(f"Feature **{feature_name}** calculation method not implemented in SpatialFeatures!")
         return features_dict

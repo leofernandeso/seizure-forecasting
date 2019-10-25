@@ -1,4 +1,5 @@
 import pickle
+import pandas as pd
 import numpy as np
 import time
 
@@ -13,7 +14,7 @@ from time_analysis import TimeFeatures
 from spatial_features import SpatialFeatures
 
 # epilepsy ecosystem parser
-from parsing import EpiEcoParser
+import parsing
 
 single_channel_feature_extractors_map = {
     'time': TimeFeatures,
@@ -23,15 +24,13 @@ spatial_feature_extractors_map = {
     'spatial': SpatialFeatures
 }
 
-# graph_features_map = {
-#     'graph_theory': GraphFeatures
-# }
-
 class FeatureExtractor():
     def __init__(self, channels_array, fs, single_channel_features_to_extract=None, spatial_features_to_extract=None):
         self.channels_array = channels_array
         self.n_channels = len(channels_array)
         self.fs = fs
+        #visualization.plot_eeg(self.channels_array, self.fs, scale='linear')
+        #visualization.plot_channel(channels_array[8], self.fs)
         self.ts = 1/fs
         self.single_channel_features_to_extract = single_channel_features_to_extract
         self.spatial_features_to_extract = spatial_features_to_extract
@@ -50,17 +49,18 @@ class FeatureExtractor():
         return channels_features
 
     def _compute_spatial_features(self):
-        channels_signals = [c['time'].signal for c in self.channels_features]
+        channels_signals = self.channels_array
         channels_spectra = [c['fourier'].power_spectral_density for c in self.channels_features]
+
         spatial_features_dict = {}
         for k, val in self.spatial_features_to_extract.items():
             spatial_features_dict.update(
                 {k: spatial_feature_extractors_map[k](channels_signals, channels_spectra, self.fs, val)}
             )
         return spatial_features_dict
+        
     def extract_features(self):
 
-        
         single_channel_features_dict = {}
         spatial_features_dict = {}
 
@@ -80,41 +80,91 @@ class FeatureExtractor():
 
         return {**single_channel_features_dict, **spatial_features_dict}
 
-def compute_windows_features(windows, fs):
-    features_dict = {}
+def compute_windows_features(windows, fs, join_windows=True):
+
+    if join_windows:
+        features_to_return = {}
+    else:
+        features_to_return = []
+
     for w_count, w in enumerate(windows):
         feature_extractor = FeatureExtractor(
                                             w, fs,
                                             single_channel_features_to_extract=cfg.single_channel_features_to_extract,
                                             spatial_features_to_extract=cfg.spatial_features_to_extract)
         window_features = feature_extractor.extract_features()
-        w_prefix = 'w_' + str(w_count) + '_'
-        window_features_with_updated_keys = {w_prefix+k: feature_val for k, feature_val in window_features.items()}
-        features_dict.update(window_features_with_updated_keys)
-    return features_dict
+
+        if join_windows:
+            w_prefix = 'w_' + str(w_count) + '_'
+            window_features_with_updated_keys = {w_prefix+k: feature_val for k, feature_val in window_features.items()}
+            features_to_return.update(window_features_with_updated_keys)
+        else:
+            features_to_return.append(window_features)
+
+    return features_to_return
+
+def generate_features(paths_df, data_parser, output_fn, dropout_path, join_windows=True):
+    
+    count = 1
+    with open(output_fn, 'a') as csv_file:
+        for idx, row in paths_df.iterrows():
+
+                print('Writing file {}/{} - {}...\n'.format(count, len(paths_df), row['base_filepath']))
+
+                # Getting separated windows and extracting features
+        
+
+                channels = data_parser.load_segment_from_path(row['abs_filepath'])
+                windows = data_parser.extract_windows(channels)
+
+                start = time.time()
+                features = compute_windows_features(windows, data_parser.fs, join_windows=join_windows)
+                end = time.time()
+                print("Features computation time : {}\n\n".format(end-start))
+
+                if join_windows:        
+                        if not None in features.values():
+                                # Appending final information
+                                features['class'] = row['class']
+                                features['patient_id'] = row['patient']
+                                features['segment_id'] = row['segment_id']
+
+                                features_df = pd.DataFrame(features, index=[0])
+                                if count == 1:
+                                        features_df.to_csv(csv_file, index=False)
+                                else:
+                                        features_df.to_csv(csv_file, index=False, header=False, chunksize=300)
+                        elif dropout_path:
+                                with open(dropout_path, 'a') as drop_file:
+                                        drop_file.write(row['abs_filepath']+'\n')
+                        count += 1
+                else:
+                        features_df = pd.DataFrame(features)
+                        features_df['class'] = row['class']
+                        features_df['patient'] = row['patient']
+                        features_df['segment_id'] = row['segment_id']
+                        
+                        if count == 1:
+                                features_df.to_csv(csv_file, index=False)
+                        else:
+                                features_df.to_csv(csv_file, index=False, header=False, chunksize=300)
+                        count += 1
+
+
             
-# def main():
-
-#     data_parser = EpiEcoParser(**cfg.parser_args)
-#     fs = data_parser.fs
-#     segment_args = dict(
-#         patient_id=2,
-#         segment_id=101,
-#         _class=1
-#     )
-#     #df = data_parser.get_all_studies_data()
-#     channels = data_parser.get_full_train_segment(**segment_args)
-#     windows = data_parser.extract_windows(channels)
-#     features = compute_windows_features(windows, fs)
-#     print(features)
-#     print(len(features))
-#     #visualization.plot_eeg(channels, fs)
-
-#     #print(features)
-#     #print(len(features))
-    
-    
-
+def main():
+    data_parser = parsing.EpiEcoParser(**cfg.epieco_parser_args)
+    fs = data_parser.fs
+    segment_args = dict(
+        patient_id=2,
+        segment_id=90,
+        _class=1
+    )
+    channels = data_parser.get_full_train_segment(**segment_args)
+    windows = data_parser.extract_windows(channels)
+    features = compute_windows_features(windows, fs, join_windows=False)
+    #print(features[0])
+    #print(len(features[0]))
     
     
 

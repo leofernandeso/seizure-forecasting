@@ -4,6 +4,7 @@ from scipy.integrate import trapz, cumtrapz
 from scipy.interpolate import interp1d
 import math
 import pickle
+import visualization
 from matplotlib import pyplot as plt
 
 
@@ -33,8 +34,7 @@ EEG_BANDS = {
             'gamma1': (30, 80),
             'gamma2': (80, 150)
             }
-SPECTRAL_EDGE_FREQUENCIES_LIST = [80, 90, 95]
-
+SPECTRAL_EDGE_FREQUENCIES_LIST = [50, 75, 80, 90, 95]
 
 class FourierFeatures():
     def __init__(self, signal, fs, features_list=None):
@@ -53,6 +53,7 @@ class FourierFeatures():
 
     def _power_spectral_density(self):
         freqs, psd = sci_signal.welch(self.signal, self.fs, nperseg=self.samples_in_segment)
+        #visualization.plot_power_spectrum(freqs, psd)
         return freqs, psd
 
     def spectral_edge_frequencies(self):
@@ -78,7 +79,7 @@ class FourierFeatures():
             lower_freq, upper_freq = EEG_BANDS[band]
             band_power = self.power_spectral_density[(self.f_axis >= lower_freq) & (self.f_axis < upper_freq)]
             relative_band_energy = trapz(band_power, dx=self._freq_res) / self.total_power
-            band_powers[band] = relative_band_energy
+            band_powers[band] = np.log2(relative_band_energy)
         return band_powers
 
     def extract_features(self):
