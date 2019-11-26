@@ -29,8 +29,8 @@ def main():
             df_val = pickle.load(df_file)
 
     
-    #generate_features(df_train, data_parser, cfg.csv_train_output_path, cfg.train_drop_out_filepath, cfg.join_windows)      
-    #generate_features(df_val, data_parser, cfg.csv_val_output_path, cfg.train_drop_out_filepath, cfg.join_windows)      
+    generate_features(df_train, data_parser, cfg.csv_train_output_path, cfg.train_drop_out_filepath, cfg.join_windows)      
+    generate_features(df_val, data_parser, cfg.csv_val_output_path, cfg.train_drop_out_filepath, cfg.join_windows)      
 
 
     

@@ -4,14 +4,13 @@ import numpy as np
 import pandas as pd
 import h5py
 import pickle
-import mne
 import os
 import shutil
 import feature_extractor_config as cfg
 import feature_extractor
 
 from sklearn.model_selection import train_test_split, StratifiedKFold
-from chb_label_wrapper import ChbLabelWrapper
+# from chb_label_wrapper import ChbLabelWrapper
 
 df_subset_path = "C:\\Users\\Leonardo\\Documents\\Faculdade\\TCC\\processed_data\\subsets"
 
@@ -53,11 +52,12 @@ def divide_interictal_files(fs, data, interictal_window):
         yield data[:, N_w1:N_w2]
 
 class EpiEcoParser():
-    def __init__(self, base_folder, windows_range, study='all'):
+    def __init__(self, base_folder, windows_range, file_type, study='all'):
         self.base_folder = base_folder
-        self.folds_folder = self.base_folder + '\\folds'
-        self.train_folder = self.base_folder + '\\Train'
-        self.test_folder = self.base_folder + '\\Test'
+        self.folds_folder = self.base_folder + '/folds'
+        self.train_folder = self.base_folder + '/Train'
+        self.test_folder = self.base_folder + '/Test'
+        self.file_type = file_type
         self.fs = 400 
         self.windows_range = windows_range
         self.study = study
@@ -68,10 +68,10 @@ class EpiEcoParser():
         files_list = []
         base_path_list = []
         for _root, _, files in os.walk(os.path.join(self.base_folder, subset)):
-            for file in files:
-                if file.endswith('.hdf5'):
-                    files_list.append(os.path.join(_root, file))
-                    base_path_list.append(file)
+            for _file in files:
+                if _file.endswith(self.file_type):
+                    files_list.append(os.path.join(_root, _file))
+                    base_path_list.append(_file)
 
         files_list = np.array(files_list)
         base_path_list = np.array(base_path_list)
@@ -88,10 +88,10 @@ class EpiEcoParser():
         df['class'] = splitted[2]
         return df
 
-    def _get_segment_path(self, subset, patient_id, segment_id, _class):
-        patient_folder = subset + "\\Pat{}Train".format(patient_id)
-        segment_path = "Pat" + str(patient_id) + "Train_" + str(segment_id) + "_" + str(_class) + ".hdf5"
-        segment_path = "Pat{}Train_{}_{}.hdf5".format(patient_id, segment_id, _class)
+    def _get_segment_path(self, subset, patient_id, segment_id, _class, file_type='csv'):
+        patient_folder = subset + "/Pat{}Train".format(patient_id)
+        segment_path = "Pat" + str(patient_id) + "Train_" + str(segment_id) + "_" + str(_class) + ".{}".format(file_type)
+        segment_path = "Pat{}Train_{}_{}.{}".format(patient_id, segment_id, _class, file_type)
         file_path = os.path.join(self.base_folder, patient_folder, segment_path)
         return file_path
 
@@ -105,28 +105,39 @@ class EpiEcoParser():
         return df_train, df_val        
     
     def generate_k_folds_features(self):
-        for fold_nr, fold_dir in enumerate(os.listdir(self.folds_folder)):
-            
+        for fold_nr, fold_dir in enumerate(  sorted(os.listdir(self.folds_folder))  ):
+
+
+
             train_fp = 'fold{}Train.csv'.format(fold_nr+1)
             test_fp = 'fold{}Test.csv'.format(fold_nr+1)
 
             abs_fold_dir = os.path.join(self.folds_folder, fold_dir)
             train_fold_file = os.path.join(abs_fold_dir, train_fp)
             test_fold_file = os.path.join(abs_fold_dir,  test_fp)
+
             train_fold_df = pd.read_csv(train_fold_file)
             test_fold_df = pd.read_csv(test_fold_file)
 
             if train_fp in cfg.epieco_folds_to_process:
                 print("=== Generating train fold - {} === \n".format(fold_nr+1))
-                feature_extractor.generate_features(train_fold_df, self, abs_fold_dir+'\\fold{}Train_features.csv'.format(fold_nr+1),
+                feature_extractor.generate_features(train_fold_df, self, abs_fold_dir+'/fold{}Train_features.csv'.format(fold_nr+1),
                                         None, join_windows=False)
                                         
             if test_fp in cfg.epieco_folds_to_process:
                 print("=== Generating test fold - {} === \n".format(fold_nr+1))                                     
-                feature_extractor.generate_features(test_fold_df, self, abs_fold_dir+'\\fold{}Eval_features.csv'.format(fold_nr+1),
+                feature_extractor.generate_features(test_fold_df, self, abs_fold_dir+'/fold{}Eval_features.csv'.format(fold_nr+1),
                                         None, join_windows=False)
 
     def generate_k_folds(self, k=5):
+        ''' 
+            Generates folds with separate csv files, where each csv file contains the segment paths
+            and other relevant data in order to perform the evaluation
+        '''
+
+        if not os.path.exists(self.folds_folder):
+            os.mkdir(self.folds_folder)
+
         data_df = self._get_all_studies_data()
         data_df = data_df.sample(frac=1).reset_index(drop=True)     # shuffle
         X = data_df.drop(columns=['class'])
@@ -160,9 +171,14 @@ class EpiEcoParser():
             return None
 
     def load_segment_from_path(self, path):
-        eeg_file = h5py.File(path, 'r')
-        eeg_data = np.array(eeg_file['data'].get('table'))
-        signal_array = [row[3] for row in eeg_data]
+        print(path)
+        if self.file_type == 'csv':
+            eeg_data = pd.read_csv(path)
+            signal_array = eeg_data.iloc[:, 4:]
+        elif self.file_type == 'hdf5':
+            eeg_file = h5py.File(path, 'r')
+            eeg_data = np.array(eeg_file['data'].get('table'))
+            signal_array = [row[3] for row in eeg_data]
         return np.array(np.transpose(signal_array))
 
     def get_full_train_segment(self, patient_id, segment_id, _class=1):
@@ -177,119 +193,116 @@ class EpiEcoParser():
 
 
 
+# class CHBParser():
+#     def __init__(self, base_folder, preictal_window, interictal_window):
+#         self.base_folder = base_folder
+#         self.preictal_window = preictal_window
+#         self.interictal_window = interictal_window  
 
+#     """ Function used to generate patient segments - using pickle files. """
+#     def fetch_all_patients_data(self):
+#         for patient_folder in os.listdir(self.base_folder):
+#             patient_id = patient_folder.split('chb')[1]
+#             print("Fetching patient {} data...".format(patient_id))
+#             self.generate_patient_segments(patient_id)
 
+#     """ Generates dataframe with patient specific segment paths """
+#     def generate_paths_df(self):
 
-class CHBParser():
-    def __init__(self, base_folder, preictal_window, interictal_window):
-        self.base_folder = base_folder
-        self.preictal_window = preictal_window
-        self.interictal_window = interictal_window  
+#         preictal_path_template = "Pat{}_preictal"
+#         interictal_path_template = "Pat{}_interictal"
 
-    """ Function used to generate patient segments - using pickle files. """
-    def fetch_all_patients_data(self):
-        for patient_folder in os.listdir(self.base_folder):
-            patient_id = patient_folder.split('chb')[1]
-            print("Fetching patient {} data...".format(patient_id))
-            self.generate_patient_segments(patient_id)
+#         # Processing folders that have dependencies
+#         dest_folder = os.path.join(self.base_folder, "paths")
+#         if os.path.exists(dest_folder):
+#             shutil.rmtree(dest_folder, ignore_errors=True)
 
-    """ Generates dataframe with patient specific segment paths """
-    def generate_paths_df(self):
+#         for patient_folder in os.listdir(self.base_folder):
 
-        preictal_path_template = "Pat{}_preictal"
-        interictal_path_template = "Pat{}_interictal"
+#             preictal_data = {}
+#             interictal_data = {}
 
-        # Processing folders that have dependencies
-        dest_folder = os.path.join(self.base_folder, "paths")
-        if os.path.exists(dest_folder):
-            shutil.rmtree(dest_folder, ignore_errors=True)
+#             # Folder and subfolder processing
+#             patient_id = patient_folder.split('chb')[1]
+#             abs_pat_folder_path = os.path.join(self.base_folder, patient_folder)
+#             pat_preictal_folderpath = os.path.join(abs_pat_folder_path, preictal_path_template.format(patient_id))
+#             pat_interictal_folderpath = os.path.join(abs_pat_folder_path, interictal_path_template.format(patient_id))
+#             preictal_files = os.listdir(pat_preictal_folderpath)
+#             interictal_files = os.listdir(pat_interictal_folderpath)
 
-        for patient_folder in os.listdir(self.base_folder):
+#             # Building a dict and a pandas dataframe from dict
+#             preictal_data.update(
+#                 {
+#                     'path': [os.path.join(pat_preictal_folderpath, seg_path) for seg_path in preictal_files],
+#                     'class': [1] * len(preictal_files),
+#                     'segment_id': list(range(1, len(preictal_files) + 1 ))
+#                 }
+#             )
+#             interictal_data.update(
+#                 {
+#                     'path': [os.path.join(pat_interictal_folderpath, seg_path) for seg_path in interictal_files],
+#                     'class': [0] * len(interictal_files),
+#                     'segment_id': list(range(1, len(interictal_files) + 1 ))
+#                 }
+#             )
 
-            preictal_data = {}
-            interictal_data = {}
+#             print("\n\n ** Patient {} - Writing paths CSV ** \n\n".format(patient_id))
+#             patient_df = pd.concat([
+#                     pd.DataFrame(preictal_data, columns=['path', 'class', 'segment_id']),
+#                     pd.DataFrame(interictal_data, columns=['path', 'class', 'segment_id'])
+#                 ], axis=0
+#             )
 
-            # Folder and subfolder processing
-            patient_id = patient_folder.split('chb')[1]
-            abs_pat_folder_path = os.path.join(self.base_folder, patient_folder)
-            pat_preictal_folderpath = os.path.join(abs_pat_folder_path, preictal_path_template.format(patient_id))
-            pat_interictal_folderpath = os.path.join(abs_pat_folder_path, interictal_path_template.format(patient_id))
-            preictal_files = os.listdir(pat_preictal_folderpath)
-            interictal_files = os.listdir(pat_interictal_folderpath)
-
-            # Building a dict and a pandas dataframe from dict
-            preictal_data.update(
-                {
-                    'path': [os.path.join(pat_preictal_folderpath, seg_path) for seg_path in preictal_files],
-                    'class': [1] * len(preictal_files),
-                    'segment_id': list(range(1, len(preictal_files) + 1 ))
-                }
-            )
-            interictal_data.update(
-                {
-                    'path': [os.path.join(pat_interictal_folderpath, seg_path) for seg_path in interictal_files],
-                    'class': [0] * len(interictal_files),
-                    'segment_id': list(range(1, len(interictal_files) + 1 ))
-                }
-            )
-
-            print("\n\n ** Patient {} - Writing paths CSV ** \n\n".format(patient_id))
-            patient_df = pd.concat([
-                    pd.DataFrame(preictal_data, columns=['path', 'class', 'segment_id']),
-                    pd.DataFrame(interictal_data, columns=['path', 'class', 'segment_id'])
-                ], axis=0
-            )
-
-            # Saving csv with paths
-            if not os.path.exists(dest_folder):
-                os.mkdir(dest_folder)
-            patient_df.to_csv(
-                os.path.join(dest_folder, "Pat_{}_paths.csv".format(patient_id)), index=False
-            )
+#             # Saving csv with paths
+#             if not os.path.exists(dest_folder):
+#                 os.mkdir(dest_folder)
+#             patient_df.to_csv(
+#                 os.path.join(dest_folder, "Pat_{}_paths.csv".format(patient_id)), index=False
+#             )
             
-    """ Reads all segment raw files for a given patient, dividing the segments as preictal or interictal.
-        Saves the processed data as pickle files """
-    def generate_patient_segments(self, patient_id):
-        patient_folder = os.path.join(self.base_folder, 'chb{}'.format(patient_id))
-        wrapper = ChbLabelWrapper(os.path.join(patient_folder, 'chb{}-summary.txt'.format(patient_id)))
-        seizure_list = wrapper.get_seizure_list()
-        edf_files = [f for f in os.listdir(patient_folder) if f.endswith('.edf')]
+#     """ Reads all segment raw files for a given patient, dividing the segments as preictal or interictal.
+#         Saves the processed data as pickle files """
+#     def generate_patient_segments(self, patient_id):
+#         patient_folder = os.path.join(self.base_folder, 'chb{}'.format(patient_id))
+#         wrapper = ChbLabelWrapper(os.path.join(patient_folder, 'chb{}-summary.txt'.format(patient_id)))
+#         seizure_list = wrapper.get_seizure_list()
+#         edf_files = [f for f in os.listdir(patient_folder) if f.endswith('.edf')]
 
 
-        preictal_dest_folder = os.path.join(patient_folder, "Pat{}_preictal".format(patient_id))
-        interictal_dest_folder = os.path.join(patient_folder, "Pat{}_interictal".format(patient_id))
+#         preictal_dest_folder = os.path.join(patient_folder, "Pat{}_preictal".format(patient_id))
+#         interictal_dest_folder = os.path.join(patient_folder, "Pat{}_interictal".format(patient_id))
 
-        if not os.path.exists(preictal_dest_folder):
-            os.mkdir(preictal_dest_folder)
-        if not os.path.exists(interictal_dest_folder):
-            os.mkdir(interictal_dest_folder)
+#         if not os.path.exists(preictal_dest_folder):
+#             os.mkdir(preictal_dest_folder)
+#         if not os.path.exists(interictal_dest_folder):
+#             os.mkdir(interictal_dest_folder)
 
-        for index, file in enumerate(edf_files):
-            if 'chb' + patient_id not in cfg.chb_ignore_patients:
-                filepath = os.path.join(patient_folder, file)
-                eeg_data = get_edf_data(filepath)
-                if seizure_list[index]:
-                    cropped_preictal_arrays = crop_preictal_segment(self.fs, eeg_data, seizure_list[index], self.preictal_window)
-                    for seg in cropped_preictal_arrays:
-                        print(file)
-                        dest_file_name = "preictal_Pat{}_{}.p".format(patient_id, len(os.listdir(preictal_dest_folder))+1)
-                        dest_file_path = os.path.join(preictal_dest_folder, dest_file_name)
-                        with open(dest_file_path, 'wb') as dest_file:
-                            pickle.dump(seg, dest_file)
-                else:
-                    cropped_interictal_arrays = divide_interictal_files(self.fs, eeg_data, self.interictal_window)
-                    print(file)
-                    for seg in cropped_interictal_arrays:
-                        dest_file_name = "interictal_Pat{}_{}.p".format(patient_id, len(os.listdir(interictal_dest_folder))+1)
-                        dest_file_path = os.path.join(interictal_dest_folder, dest_file_name)
-                        with open(dest_file_path, 'wb') as dest_file:
-                            pickle.dump(seg, dest_file)
+#         for index, file in enumerate(edf_files):
+#             if 'chb' + patient_id not in cfg.chb_ignore_patients:
+#                 filepath = os.path.join(patient_folder, file)
+#                 eeg_data = get_edf_data(filepath)
+#                 if seizure_list[index]:
+#                     cropped_preictal_arrays = crop_preictal_segment(self.fs, eeg_data, seizure_list[index], self.preictal_window)
+#                     for seg in cropped_preictal_arrays:
+#                         print(file)
+#                         dest_file_name = "preictal_Pat{}_{}.p".format(patient_id, len(os.listdir(preictal_dest_folder))+1)
+#                         dest_file_path = os.path.join(preictal_dest_folder, dest_file_name)
+#                         with open(dest_file_path, 'wb') as dest_file:
+#                             pickle.dump(seg, dest_file)
+#                 else:
+#                     cropped_interictal_arrays = divide_interictal_files(self.fs, eeg_data, self.interictal_window)
+#                     print(file)
+#                     for seg in cropped_interictal_arrays:
+#                         dest_file_name = "interictal_Pat{}_{}.p".format(patient_id, len(os.listdir(interictal_dest_folder))+1)
+#                         dest_file_path = os.path.join(interictal_dest_folder, dest_file_name)
+#                         with open(dest_file_path, 'wb') as dest_file:
+#                             pickle.dump(seg, dest_file)
 
 
 
 def main():
     parser = EpiEcoParser(**cfg.epieco_parser_args)
-    #parser.generate_k_folds()
+    parser.generate_k_folds()
     parser.generate_k_folds_features()
 
 if __name__ == '__main__':

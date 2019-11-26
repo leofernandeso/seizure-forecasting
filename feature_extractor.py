@@ -156,9 +156,9 @@ def main():
     data_parser = parsing.EpiEcoParser(**cfg.epieco_parser_args)
     fs = data_parser.fs
     segment_args = dict(
-        patient_id=2,
-        segment_id=90,
-        _class=1
+        patient_id=3,
+        segment_id=298,
+        _class=0,
     )
     channels = data_parser.get_full_train_segment(**segment_args)
     windows = data_parser.extract_windows(channels)
