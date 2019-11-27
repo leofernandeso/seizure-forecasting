@@ -148,7 +148,12 @@ def generate_features(paths_df, data_parser, output_fn, dropout_path, join_windo
                     print("== Discarding segment due to dropouts. == ")
 
             else:
-                if not None in features.values():
+                # Checking if there are NaNs (this means dropouts!)
+                for feature_dict in features:
+                    if None in feature_dict.values():
+                        contains_dropouts = True
+                
+                if not contains_dropouts:
                     features_df = pd.DataFrame(features)
                     features_df['class'] = row['class']
                     features_df['patient'] = row['patient']
