@@ -149,6 +149,7 @@ def generate_features(paths_df, data_parser, output_fn, dropout_path, join_windo
 
             else:
                 # Checking if there are NaNs (this means dropouts!)
+                contains_dropouts = False
                 for feature_dict in features:
                     if None in feature_dict.values():
                         contains_dropouts = True
