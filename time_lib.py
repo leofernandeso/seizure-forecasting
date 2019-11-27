@@ -31,7 +31,8 @@ def std(signal):
 
 def mobility(signal):
     signal_derivative = np.diff(signal)
-    return np.sqrt(np.var(signal_derivative) / np.var(signal))
+    mob = np.sqrt( np.var(signal_derivative) / np.var(signal) )
+    return mob
 
 def complexity(signal):
     signal_derivative = np.diff(signal)

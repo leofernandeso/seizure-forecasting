@@ -306,7 +306,7 @@ class EpiEcoParser():
 
 def main():
     parser = EpiEcoParser(**cfg.epieco_parser_args)
-    # parser.generate_k_folds()
+    parser.generate_k_folds()
     # parser.generate_k_folds_features()
 
 if __name__ == '__main__':

@@ -104,7 +104,11 @@ def compute_windows_features(windows, fs, join_windows=True):
     return features_to_return
 
 def generate_features(paths_df, data_parser, output_fn, dropout_path, join_windows=True):
-    
+
+
+    if not os.path.exists(dropout_path):
+        open(dropout_path, 'w').close()
+
     count = 1
     with open(output_fn, 'a') as csv_file:
         for idx, row in paths_df.iterrows():
@@ -135,8 +139,9 @@ def generate_features(paths_df, data_parser, output_fn, dropout_path, join_windo
                                 else:
                                         features_df.to_csv(csv_file, index=False, header=False, chunksize=300)
                         elif dropout_path:
-                                with open(dropout_path, 'a') as drop_file:
-                                        drop_file.write(row['abs_filepath']+'\n')
+			    print("Segment with dropouts -- discarding.\n")
+       	                    with open(dropout_path, 'a') as drop_file:
+                                drop_file.write(row['abs_filepath']+'\n')
                         count += 1
                 else:
                         features_df = pd.DataFrame(features)

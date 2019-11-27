@@ -3,7 +3,7 @@ import os
 
 from parsing import EpiEcoParser
 
-base_folder = "D:\\Faculdade\\TCC\\dados\\epilepsy_ecosystem\\folds"
+base_folder = "./../data/folds"
 data_parser = EpiEcoParser(**cfg.epieco_parser_args)
 
 for dir in os.listdir(base_folder):

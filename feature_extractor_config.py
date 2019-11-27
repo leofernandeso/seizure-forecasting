@@ -21,8 +21,8 @@ train_drop_out_filepath = "./../data/Train/drop_out_segments.txt"
 
 
 epieco_parser_args = {
-    'base_folder': "/home/leonardo/Faculdade/TCC/data",
-    'windows_range': [*non_overlapping_windows(spacing=30, end=600, overlap=10)],     # in seconds
+    'base_folder': "./../data",
+    'windows_range': [*non_overlapping_windows(spacing=5, end=600, overlap=0)],     # in seconds
     'file_type': 'csv'
     #'windows_range': [(0, 200), (200, 400), (400, 600), (0, 400), (0, 600)], # defining it manually. they can also overlap!
 }
@@ -38,10 +38,10 @@ single_channel_features_to_extract = {
 }
 
 spatial_features_to_extract = {
-    'spatial': ['time_domain_correlation', 'frequency_domain_correlation', 'nodes_degree',
-                'avg_clust_coeff', 'density', 
-                'global_efficiency', 'clustering_coeff', 'avg_shortest_path',
-                'eigenvector_centrality']
+    'spatial': ['time_domain_correlation', 'frequency_domain_correlation', 'nodes_degree']
+              #'avg_clust_coeff', 'density',
+              #  'global_efficiency', 'clustering_coeff', 'avg_shortest_path',
+              #  'eigenvector_centrality'''
 }
 
 
