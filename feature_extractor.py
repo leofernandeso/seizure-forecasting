@@ -105,10 +105,6 @@ def compute_windows_features(windows, fs, join_windows=True):
 
 def generate_features(paths_df, data_parser, output_fn, dropout_path, join_windows=True):
 
-
-    if not os.path.exists(dropout_path):
-        open(dropout_path, 'w').close()
-
     count = 1
     with open(output_fn, 'a') as csv_file:
         for idx, row in paths_df.iterrows():
@@ -128,6 +124,7 @@ def generate_features(paths_df, data_parser, output_fn, dropout_path, join_windo
 
                 if join_windows:        
                         if not None in features.values():
+
                                 # Appending final information
                                 features['class'] = row['class']
                                 features['patient_id'] = row['patient']
@@ -138,10 +135,8 @@ def generate_features(paths_df, data_parser, output_fn, dropout_path, join_windo
                                         features_df.to_csv(csv_file, index=False)
                                 else:
                                         features_df.to_csv(csv_file, index=False, header=False, chunksize=300)
-                        elif dropout_path:
-                            print("Discarding -- segment with dropouts.\n")
-                            with open(dropout_path, 'a') as drop_file:
-                                drop_file.write(row['abs_filepath']+'\n')
+                        else:
+                            print("== Discarding segment due to dropouts. == ")
                         count += 1
                 else:
                         features_df = pd.DataFrame(features)

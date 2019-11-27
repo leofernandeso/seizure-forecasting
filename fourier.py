@@ -61,7 +61,7 @@ class FourierFeatures():
         edge_frequencies_dict = {}
         for edge_factor in SPECTRAL_EDGE_FREQUENCIES_LIST:
             superior_freqs = np.array(np.where(cum_power >= (edge_factor/100) * self.total_power)) * self._freq_res
-            if self.total_power != 0:
+            if self.total_power >= 10e-4:
                 edge_frequency = superior_freqs[0][0] # first superior frequency
             else:
                 edge_frequency = None # checking for dropouts
