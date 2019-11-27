@@ -139,8 +139,8 @@ def generate_features(paths_df, data_parser, output_fn, dropout_path, join_windo
                                 else:
                                         features_df.to_csv(csv_file, index=False, header=False, chunksize=300)
                         elif dropout_path:
-			    print("Segment with dropouts -- discarding.\n")
-       	                    with open(dropout_path, 'a') as drop_file:
+                            print("Discarding -- segment with dropouts.\n")
+                            with open(dropout_path, 'a') as drop_file:
                                 drop_file.write(row['abs_filepath']+'\n')
                         count += 1
                 else:
