@@ -12,7 +12,7 @@ import feature_extractor
 from sklearn.model_selection import train_test_split, StratifiedKFold
 # from chb_label_wrapper import ChbLabelWrapper
 
-df_subset_path = "C:\\Users\\Leonardo\\Documents\\Faculdade\\TCC\\processed_data\\subsets"
+df_subset_path = "./../subsets"
 
 def get_segment_windows(fs, segment_array, window_ranges):
     transposed_array = np.transpose(segment_array)
@@ -96,11 +96,15 @@ class EpiEcoParser():
         return file_path
 
     def process_dataset(self):
+
+        if not os.path.exists(df_subset_path):
+            os.mkdir(df_subset_path)
+
         df_train = self._get_all_studies_data()
         df_train, df_val = train_test_split(df_train, test_size=0.2, random_state=42, stratify=df_train['class'])
-        with open(df_subset_path+'\\train.p', 'wb') as train_df_file:
+        with open(df_subset_path+'/train.p', 'wb') as train_df_file:
             pickle.dump(df_train, train_df_file)     
-        with open(df_subset_path+'\\validation.p', 'wb') as val_df_file:            
+        with open(df_subset_path+'/validation.p', 'wb') as val_df_file:            
             pickle.dump(df_val, val_df_file)
         return df_train, df_val        
     
@@ -302,8 +306,8 @@ class EpiEcoParser():
 
 def main():
     parser = EpiEcoParser(**cfg.epieco_parser_args)
-    parser.generate_k_folds()
-    parser.generate_k_folds_features()
+    # parser.generate_k_folds()
+    # parser.generate_k_folds_features()
 
 if __name__ == '__main__':
     main()

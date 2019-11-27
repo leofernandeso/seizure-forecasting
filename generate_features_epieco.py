@@ -14,8 +14,8 @@ import feature_extractor_config as cfg
 
 def main():
 
-    train_path = "C:\\Users\\Leonardo\\Documents\\Faculdade\\TCC\\processed_data\\subsets\\train.p"
-    val_path = "C:\\Users\\Leonardo\\Documents\\Faculdade\\TCC\\processed_data\\subsets\\validation.p"
+    train_path = "./../subsets/train.p"
+    val_path = "./../subsets/validation.p"
 
     data_parser = EpiEcoParser(**cfg.epieco_parser_args)
 
